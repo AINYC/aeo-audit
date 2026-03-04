@@ -1,0 +1,140 @@
+import { clampScore } from './helpers.js'
+
+const AI_CRAWLERS = [
+  { name: 'GPTBot', points: 18 },
+  { name: 'ClaudeBot', points: 18 },
+  { name: 'PerplexityBot', points: 18 },
+  { name: 'OAI-SearchBot', points: 14 },
+  { name: 'Google-Extended', points: 14 },
+]
+
+function parseRobotsTxt(robotsTxt) {
+  const lines = robotsTxt
+    .split(/\r?\n/)
+    .map((line) => line.split('#')[0].trim())
+    .filter(Boolean)
+
+  const groups = []
+  let currentGroup = null
+
+  for (const line of lines) {
+    const [rawKey, ...rawValueParts] = line.split(':')
+    if (!rawKey || !rawValueParts.length) {
+      continue
+    }
+
+    const key = rawKey.trim().toLowerCase()
+    const value = rawValueParts.join(':').trim()
+
+    if (key === 'user-agent') {
+      currentGroup = { agents: [value.toLowerCase()], rules: [] }
+      groups.push(currentGroup)
+      continue
+    }
+
+    if (!currentGroup) {
+      continue
+    }
+
+    if (key === 'allow' || key === 'disallow') {
+      currentGroup.rules.push({ type: key, path: value })
+    }
+  }
+
+  return groups
+}
+
+function isBotAllowed(groups, botName) {
+  const botLower = botName.toLowerCase()
+
+  // Find the most specific matching group (exact bot name > wildcard)
+  const exactGroup = groups.find((group) =>
+    group.agents.some((agent) => agent === botLower),
+  )
+
+  const wildcardGroup = groups.find((group) =>
+    group.agents.some((agent) => agent === '*'),
+  )
+
+  const matchingGroup = exactGroup || wildcardGroup
+
+  if (!matchingGroup) {
+    return true // No matching rules means allowed
+  }
+
+  // Check rules - most specific path wins, allow takes precedence on tie
+  let allows = false
+  let disallows = false
+
+  for (const rule of matchingGroup.rules) {
+    if (rule.path === '/' && rule.type === 'allow') {
+      allows = true
+    }
+
+    if (rule.path === '/' && rule.type === 'disallow') {
+      disallows = true
+    }
+  }
+
+  if (allows) {
+    return true
+  }
+
+  return !disallows
+}
+
+export function analyzeAiCrawlerAccess(context) {
+  const findings = []
+  const recommendations = []
+  let score = 0
+
+  const robotsState = context.auxiliary?.robotsTxt?.state
+  if (robotsState !== 'ok') {
+    if (robotsState === 'missing') {
+      // No robots.txt means everything is allowed
+      score += 80
+      findings.push({ type: 'info', message: 'No robots.txt found — AI crawlers are implicitly allowed.' })
+      recommendations.push('Add a robots.txt that explicitly allows AI crawlers for clarity.')
+    } else {
+      score += 30
+      findings.push({ type: robotsState === 'timeout' ? 'timeout' : 'unreachable', message: 'Could not reliably fetch robots.txt.' })
+    }
+
+    return { score: clampScore(score), findings, recommendations }
+  }
+
+  const robotsTxt = context.auxiliary.robotsTxt.body || ''
+  const groups = parseRobotsTxt(robotsTxt)
+
+  let allowedCount = 0
+  const blockedBots = []
+
+  for (const crawler of AI_CRAWLERS) {
+    const allowed = isBotAllowed(groups, crawler.name)
+
+    if (allowed) {
+      allowedCount += 1
+      score += crawler.points
+      findings.push({ type: 'found', message: `${crawler.name} is allowed by robots.txt.` })
+    } else {
+      blockedBots.push(crawler.name)
+      findings.push({ type: 'missing', message: `${crawler.name} is blocked by robots.txt.` })
+    }
+  }
+
+  if (blockedBots.length > 0) {
+    recommendations.push(`Consider allowing these AI crawlers in robots.txt: ${blockedBots.join(', ')}.`)
+  }
+
+  // Bonus for explicit sitemap directive
+  if (robotsTxt.toLowerCase().includes('sitemap:')) {
+    score += 18
+    findings.push({ type: 'found', message: 'Sitemap directive found in robots.txt.' })
+  }
+
+  return {
+    score: clampScore(score),
+    findings,
+    recommendations,
+  }
+}

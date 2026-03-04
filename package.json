@@ -1,0 +1,60 @@
+{
+  "name": "@ainyc/aeo-audit",
+  "version": "1.0.0",
+  "description": "The most comprehensive open-source Answer Engine Optimization (AEO) audit tool. Scores websites across 13 ranking factors that determine AI citation.",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "aeo-audit": "bin/aeo-audit.js"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./scoring": "./src/scoring.js",
+    "./analyzers/*": "./src/analyzers/*.js",
+    "./formatters/*": "./src/formatters/*.js"
+  },
+  "files": [
+    "src/",
+    "bin/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/**/*.test.js test/*.test.js",
+    "lint": "eslint src/ test/ bin/",
+    "prepublishOnly": "npm test && npm run lint"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "ipaddr.js": "^2.3.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "aeo",
+    "answer-engine-optimization",
+    "seo",
+    "ai-seo",
+    "llmo",
+    "structured-data",
+    "json-ld",
+    "llms-txt",
+    "claude-code",
+    "skill",
+    "audit"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AINYC/aeo-audit.git"
+  },
+  "homepage": "https://github.com/AINYC/aeo-audit#readme",
+  "bugs": {
+    "url": "https://github.com/AINYC/aeo-audit/issues"
+  }
+}

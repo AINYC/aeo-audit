@@ -1,0 +1,54 @@
+# CLAUDE.md
+
+## Project Overview
+
+@ainyc/aeo-audit — an open-source AEO (Answer Engine Optimization) audit engine and Claude Code skill suite. Scores websites across 13 ranking factors that determine AI citation.
+
+## Tech Stack
+
+- **Language:** JavaScript (ESM), no TypeScript
+- **Runtime:** Node.js >= 20
+- **Package manager:** pnpm
+- **HTML parsing:** Cheerio
+- **Test runner:** Node.js built-in (`node --test`)
+- **Linter:** ESLint v9 flat config
+
+## Commands
+
+```bash
+pnpm install    # Install dependencies
+pnpm test       # Run all tests
+pnpm lint       # Run linter
+```
+
+## Key Files
+
+```
+src/
+  index.js           # Main entry: runAeoAudit(url, options)
+  scoring.js         # Factor definitions, weights, grade calculation
+  fetch-page.js      # URL fetching with SSRF protection
+  errors.js          # AeoAuditError class
+  cli.js             # CLI argument parsing
+  formatters/        # json, markdown, text output formatters
+  analyzers/         # 14 analyzer modules (13 core + 1 optional)
+bin/
+  aeo-audit.js       # CLI entry point
+skills/              # 5 Claude Code SKILL.md files
+test/                # Unit and integration tests
+```
+
+## Architecture
+
+- Each analyzer receives a context object `{ $, html, url, headers, auxiliary, structuredData, textContent, pageTitle }` and returns `{ score, findings, recommendations }`
+- Scores are weighted and normalized in `scoring.js`; weights sum to 100% for active factors
+- Geographic signals is optional (excluded by default); when included, weights renormalize
+- The `--factors` flag allows running a subset of analyzers
+- SSRF protection blocks private IPs and hostnames in `fetch-page.js`
+
+## Code Conventions
+
+- Functional style, no classes except AeoAuditError
+- Always use `clampScore()` for score calculations
+- Findings types: `found`, `missing`, `info`, `timeout`, `unreachable`
+- Unused vars starting with `_` are ignored by ESLint

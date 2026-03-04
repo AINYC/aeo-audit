@@ -1,0 +1,9 @@
+test/
+skills/
+.github/
+.gitignore
+.eslintrc.cjs
+CONTRIBUTING.md
+CLAUDE.md
+CHANGELOG.md
+.aeo-audit-history/

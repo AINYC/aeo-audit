@@ -1,0 +1,112 @@
+import {
+  clampScore,
+  collectEmails,
+  collectPhones,
+  getStructuredDataNames,
+  normalizeEntityName,
+  normalizeText,
+} from './helpers.js'
+
+function extractSchemaContacts(structuredData) {
+  const emails = []
+  const phones = []
+
+  for (const item of structuredData) {
+    if (typeof item?.email === 'string') {
+      emails.push(item.email)
+    }
+
+    if (typeof item?.telephone === 'string') {
+      phones.push(item.telephone)
+    }
+
+    const contactPoint = item?.contactPoint
+    const points = Array.isArray(contactPoint) ? contactPoint : contactPoint ? [contactPoint] : []
+    for (const point of points) {
+      if (typeof point?.email === 'string') {
+        emails.push(point.email)
+      }
+
+      if (typeof point?.telephone === 'string') {
+        phones.push(point.telephone)
+      }
+    }
+  }
+
+  return { emails, phones }
+}
+
+export function analyzeEntityConsistency(context) {
+  const findings = []
+  const recommendations = []
+  let score = 0
+
+  const schemaNames = getStructuredDataNames(context.structuredData)
+  const pageTitle = normalizeText(context.pageTitle)
+  const ogTitle = normalizeText(context.$('meta[property="og:title"]').attr('content') || '')
+
+  const normalizedCandidates = [
+    ...schemaNames.slice(0, 2),
+    pageTitle.split(/[|\-–—]/)[0],
+    ogTitle.split(/[|\-–—]/)[0],
+  ]
+    .map((candidate) => normalizeEntityName(candidate))
+    .filter(Boolean)
+
+  const uniqueCandidates = [...new Set(normalizedCandidates)]
+
+  if (!uniqueCandidates.length) {
+    findings.push({ type: 'missing', message: 'Could not determine a consistent business entity name.' })
+    recommendations.push('Expose business name consistently in title tags and JSON-LD.')
+  } else if (uniqueCandidates.length === 1) {
+    score += 40
+    findings.push({ type: 'found', message: 'Business naming looks consistent across key metadata.' })
+  } else if (uniqueCandidates.length === 2) {
+    score += 24
+    findings.push({ type: 'info', message: 'Minor business name inconsistencies found across metadata.' })
+    recommendations.push('Align title, og:title, and schema name fields to the same canonical brand name.')
+  } else {
+    score += 12
+    findings.push({ type: 'missing', message: 'Business naming appears inconsistent across sources.' })
+    recommendations.push('Standardize brand/entity naming in HTML metadata and JSON-LD.')
+  }
+
+  const canonicalHref = context.$('link[rel="canonical"]').attr('href')
+  if (canonicalHref) {
+    score += 20
+    findings.push({ type: 'found', message: 'Canonical URL tag is present.' })
+  } else {
+    findings.push({ type: 'missing', message: 'Canonical URL tag is missing.' })
+    recommendations.push('Add a canonical link tag to declare the primary page URL.')
+  }
+
+  const schemaContacts = extractSchemaContacts(context.structuredData)
+  const pageEmails = collectEmails(context.textContent)
+  const pagePhones = collectPhones(context.textContent)
+
+  const emailOverlap = schemaContacts.emails.length
+    ? schemaContacts.emails.some((email) => pageEmails.some((candidate) => candidate.toLowerCase() === email.toLowerCase()))
+    : false
+
+  const phoneOverlap = schemaContacts.phones.length
+    ? schemaContacts.phones.some((phone) => pagePhones.some((candidate) => normalizeText(candidate) === normalizeText(phone)))
+    : false
+
+  if (emailOverlap || phoneOverlap) {
+    score += 40
+    findings.push({ type: 'found', message: 'Contact information appears consistent between schema and page content.' })
+  } else if (schemaContacts.emails.length || schemaContacts.phones.length) {
+    score += 16
+    findings.push({ type: 'info', message: 'Schema contact details were found but consistency is unclear in visible content.' })
+    recommendations.push('Mirror key contact details in visible content and JSON-LD.')
+  } else {
+    findings.push({ type: 'missing', message: 'No reliable contact details found in structured data.' })
+    recommendations.push('Add email/telephone contact fields in LocalBusiness schema.')
+  }
+
+  return {
+    score: clampScore(score),
+    findings,
+    recommendations,
+  }
+}
