@@ -1,5 +1,6 @@
 import { load } from 'cheerio'
 import { fetchPage, normalizeTargetUrl } from './fetch-page.js'
+import { AeoAuditError } from './errors.js'
 import { analyzeStructuredData } from './analyzers/structured-data.js'
 import { analyzeAiReadableContent } from './analyzers/ai-readable-content.js'
 import { analyzeEntityConsistency } from './analyzers/entity-consistency.js'
@@ -34,7 +35,16 @@ const ANALYZER_BY_ID = {
   'content-extractability': analyzeContentExtractability,
 }
 
+const ALL_FACTOR_IDS = new Set([
+  ...FACTOR_DEFINITIONS.map((d) => d.id),
+  ...OPTIONAL_FACTOR_DEFINITIONS.map((d) => d.id),
+])
+
 function buildSummary(factors, overallGrade) {
+  if (!factors.length) {
+    return `Overall grade ${overallGrade}. No factors evaluated.`
+  }
+
   const ranked = [...factors].sort((a, b) => b.score - a.score)
   const strengths = ranked.slice(0, 2).map((factor) => factor.name)
   const weaknesses = ranked.slice(-2).map((factor) => factor.name)
@@ -44,6 +54,15 @@ function buildSummary(factors, overallGrade) {
 
 export async function runAeoAudit(rawUrl, options = {}) {
   const normalizedUrl = normalizeTargetUrl(rawUrl)
+
+  // Validate factor IDs if provided
+  if (options.factors && options.factors.length > 0) {
+    const invalid = options.factors.filter((id) => !ALL_FACTOR_IDS.has(id))
+    if (invalid.length > 0) {
+      throw new AeoAuditError('BAD_INPUT', `Unknown factor ID(s): ${invalid.join(', ')}. Valid IDs: ${[...ALL_FACTOR_IDS].join(', ')}`)
+    }
+  }
+
   const fetchedPage = await fetchPage(normalizedUrl.toString())
 
   const $ = load(fetchedPage.html)

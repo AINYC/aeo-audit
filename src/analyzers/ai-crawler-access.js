@@ -18,17 +18,22 @@ function parseRobotsTxt(robotsTxt) {
   let currentGroup = null
 
   for (const line of lines) {
-    const [rawKey, ...rawValueParts] = line.split(':')
-    if (!rawKey || !rawValueParts.length) {
+    const colonIndex = line.indexOf(':')
+    if (colonIndex === -1) {
       continue
     }
 
-    const key = rawKey.trim().toLowerCase()
-    const value = rawValueParts.join(':').trim()
+    const key = line.slice(0, colonIndex).trim().toLowerCase()
+    const value = line.slice(colonIndex + 1).trim()
 
     if (key === 'user-agent') {
-      currentGroup = { agents: [value.toLowerCase()], rules: [] }
-      groups.push(currentGroup)
+      // Consecutive User-agent lines share the same rule block
+      if (currentGroup && currentGroup.rules.length === 0) {
+        currentGroup.agents.push(value.toLowerCase())
+      } else {
+        currentGroup = { agents: [value.toLowerCase()], rules: [] }
+        groups.push(currentGroup)
+      }
       continue
     }
 
@@ -44,8 +49,9 @@ function parseRobotsTxt(robotsTxt) {
   return groups
 }
 
-function isBotAllowed(groups, botName) {
+function isBotAllowedForPath(groups, botName, urlPath) {
   const botLower = botName.toLowerCase()
+  const path = urlPath || '/'
 
   // Find the most specific matching group (exact bot name > wildcard)
   const exactGroup = groups.find((group) =>
@@ -62,25 +68,30 @@ function isBotAllowed(groups, botName) {
     return true // No matching rules means allowed
   }
 
-  // Check rules - most specific path wins, allow takes precedence on tie
-  let allows = false
-  let disallows = false
+  // Evaluate rules: longest matching path wins. On tie, Allow beats Disallow.
+  let bestMatch = null
 
   for (const rule of matchingGroup.rules) {
-    if (rule.path === '/' && rule.type === 'allow') {
-      allows = true
+    const rulePath = rule.path || ''
+
+    // Empty disallow means allow everything
+    if (rule.type === 'disallow' && rulePath === '') {
+      continue
     }
 
-    if (rule.path === '/' && rule.type === 'disallow') {
-      disallows = true
+    // Check if the rule path matches the URL path
+    if (path.startsWith(rulePath)) {
+      if (!bestMatch || rulePath.length > bestMatch.path.length || (rulePath.length === bestMatch.path.length && rule.type === 'allow')) {
+        bestMatch = rule
+      }
     }
   }
 
-  if (allows) {
-    return true
+  if (!bestMatch) {
+    return true // No matching rule means allowed
   }
 
-  return !disallows
+  return bestMatch.type === 'allow'
 }
 
 export function analyzeAiCrawlerAccess(context) {
@@ -106,14 +117,22 @@ export function analyzeAiCrawlerAccess(context) {
   const robotsTxt = context.auxiliary.robotsTxt.body || ''
   const groups = parseRobotsTxt(robotsTxt)
 
-  let allowedCount = 0
+  // Determine the path of the audited URL
+  let auditedPath = '/'
+  try {
+    auditedPath = new URL(context.url).pathname || '/'
+  } catch {
+    // Use default /
+  }
+
+  let _allowedCount = 0
   const blockedBots = []
 
   for (const crawler of AI_CRAWLERS) {
-    const allowed = isBotAllowed(groups, crawler.name)
+    const allowed = isBotAllowedForPath(groups, crawler.name, auditedPath)
 
     if (allowed) {
-      allowedCount += 1
+      _allowedCount += 1
       score += crawler.points
       findings.push({ type: 'found', message: `${crawler.name} is allowed by robots.txt.` })
     } else {
