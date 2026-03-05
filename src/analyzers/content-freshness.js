@@ -20,12 +20,10 @@ function extractSitemapLastmod(sitemapXml, targetUrl) {
   const entryPattern = new RegExp(`<url>[\\s\\S]*?<loc>${escapedUrl}<\\/loc>[\\s\\S]*?<lastmod>(.*?)<\\/lastmod>[\\s\\S]*?<\\/url>`, 'i')
   const match = sitemapXml.match(entryPattern)
 
-  if (!match?.[1]) {
-    const firstLastmod = sitemapXml.match(/<lastmod>(.*?)<\/lastmod>/i)
-    return firstLastmod?.[1] || null
-  }
-
-  return match[1]
+  // Only return the lastmod if it matches the target URL exactly.
+  // Do NOT fall back to the first <lastmod> in the sitemap — that
+  // belongs to a different URL and would produce a false freshness signal.
+  return match?.[1] || null
 }
 
 export function analyzeContentFreshness(context) {
@@ -94,8 +92,9 @@ export function analyzeContentFreshness(context) {
         findings.push({ type: 'info', message: 'Sitemap lastmod exists but may be stale.' })
       }
     } else {
-      score += 8
-      findings.push({ type: 'info', message: 'Sitemap found but lastmod could not be parsed.' })
+      score += 4
+      findings.push({ type: 'info', message: 'Sitemap found but no matching lastmod for this URL.' })
+      recommendations.push('Add a <lastmod> entry for this URL in sitemap.xml.')
     }
   } else if (sitemapState === 'timeout') {
     score += 8
