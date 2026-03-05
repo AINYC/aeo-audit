@@ -20,7 +20,7 @@ jobs:
           BASE=$(git log --pretty=format:'%H' -1 HEAD^ 2>/dev/null || echo "")
           PREV=$(git show "$BASE":package.json 2>/dev/null | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).version" 2>/dev/null || echo "")
           CURR=$(node -p "require('./package.json').version")
-          if [ "$PREV" != "$CURR" ] && [ -n "$PREV" ]; then
+          if [ "$PREV" != "$CURR" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "version=$CURR" >> "$GITHUB_OUTPUT"
           else
