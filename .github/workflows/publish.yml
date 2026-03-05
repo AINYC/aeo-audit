@@ -2,26 +2,52 @@ name: Publish
 
 on:
   push:
-    tags: ['v*']
+    branches: [main]
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check for version change
+        id: version
+        run: |
+          BASE=$(git log --pretty=format:'%H' -1 HEAD^ 2>/dev/null || echo "")
+          PREV=$(git show "$BASE":package.json 2>/dev/null | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).version" 2>/dev/null || echo "")
+          CURR=$(node -p "require('./package.json').version")
+          if [ "$PREV" != "$CURR" ] && [ -n "$PREV" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "version=$CURR" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: pnpm/action-setup@v4
+        if: steps.version.outputs.changed == 'true'
         with:
           version: 9
       - uses: actions/setup-node@v4
+        if: steps.version.outputs.changed == 'true'
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        if: steps.version.outputs.changed == 'true'
       - run: pnpm test
+        if: steps.version.outputs.changed == 'true'
       - run: npm publish --provenance --access public
+        if: steps.version.outputs.changed == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create git tag
+        if: steps.version.outputs.changed == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"

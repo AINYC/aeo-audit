@@ -2,7 +2,7 @@ test/
 skills/
 .github/
 .gitignore
-.eslintrc.cjs
+eslint.config.js
 CONTRIBUTING.md
 CLAUDE.md
 CHANGELOG.md

@@ -52,3 +52,10 @@ test/                # Unit and integration tests
 - Always use `clampScore()` for score calculations
 - Findings types: `found`, `missing`, `info`, `timeout`, `unreachable`
 - Unused vars starting with `_` are ignored by ESLint
+
+## GitHub Actions Conventions
+
+- **Single trigger path per release flow.** If the workflow auto-creates a tag, do not also trigger on that tag pattern — the self-pushed tag will re-fire the workflow, causing a duplicate publish that fails with 403 on npm.
+- **Never interpolate step outputs directly into `run:` blocks.** Use an `env:` block to pass values into shell scripts: `env: { VERSION: "${{ steps.x.outputs.version }}" }` then reference `$VERSION` in the script. Direct `${{ }}` interpolation in `run:` is a script-injection vector.
+- **Scope permissions to the minimum required per job.** If only one step needs `contents: write` (e.g., pushing a tag), prefer splitting it into a separate job with its own permissions block rather than elevating the entire job.
+- **Declare explicit `permissions` on every job.** Omitting the `permissions` block inherits the repository default, which may be `write-all`. Always declare at minimum `contents: read`.
