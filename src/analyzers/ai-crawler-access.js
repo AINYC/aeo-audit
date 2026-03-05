@@ -106,14 +106,12 @@ export function analyzeAiCrawlerAccess(context) {
   const robotsTxt = context.auxiliary.robotsTxt.body || ''
   const groups = parseRobotsTxt(robotsTxt)
 
-  let allowedCount = 0
   const blockedBots = []
 
   for (const crawler of AI_CRAWLERS) {
     const allowed = isBotAllowed(groups, crawler.name)
 
     if (allowed) {
-      allowedCount += 1
       score += crawler.points
       findings.push({ type: 'found', message: `${crawler.name} is allowed by robots.txt.` })
     } else {

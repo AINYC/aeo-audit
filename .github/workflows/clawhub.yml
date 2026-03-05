@@ -1,0 +1,43 @@
+name: Publish Skills to ClawHub
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'skills/**'
+
+jobs:
+  publish-skills:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        skill: [aeo-audit, aeo-fix, aeo-llms-generate, aeo-monitor, aeo-schema-validate]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check if skill changed
+        id: check
+        run: |
+          if git diff --name-only HEAD~1 HEAD -- "skills/${{ matrix.skill }}/" | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.changed == 'true'
+        with:
+          node-version: 22
+      - name: Install ClawHub CLI
+        if: steps.check.outputs.changed == 'true'
+        run: npm install -g clawhub
+      - name: Publish skill
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          clawhub publish "./skills/${{ matrix.skill }}" \
+            --slug "${{ matrix.skill }}" \
+            --name "${{ matrix.skill }}" \
+            --version "$VERSION"
+        env:
+          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
