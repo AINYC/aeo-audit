@@ -9,6 +9,8 @@ argument-hint: <url>
 
 # AEO Schema Validation
 
+Website: [ainyc.ai](https://ainyc.ai)
+
 Focused validation of JSON-LD structured data for AEO readiness.
 
 ## Steps

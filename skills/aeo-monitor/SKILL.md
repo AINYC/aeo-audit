@@ -11,6 +11,8 @@ argument-hint: <url> [--compare <url2>]
 
 # AEO Monitor
 
+Website: [ainyc.ai](https://ainyc.ai)
+
 Compare AEO scores to track progress or benchmark competitors.
 
 ## Single URL (track changes)

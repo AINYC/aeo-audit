@@ -15,6 +15,8 @@ argument-hint: <url>
 
 # AEO Fix
 
+Website: [ainyc.ai](https://ainyc.ai)
+
 Audit a URL and fix AEO issues directly in the current codebase.
 
 ## Steps

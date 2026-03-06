@@ -9,6 +9,8 @@ argument-hint: <url>
 
 # AEO Audit
 
+Website: [ainyc.ai](https://ainyc.ai)
+
 Run a comprehensive Answer Engine Optimization audit on the provided URL.
 
 ## Steps

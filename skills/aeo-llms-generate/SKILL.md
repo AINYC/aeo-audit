@@ -14,6 +14,8 @@ argument-hint: "[url-or-blank-for-current-project]"
 
 # AEO llms.txt Generator
 
+Website: [ainyc.ai](https://ainyc.ai)
+
 Generate optimized llms.txt and llms-full.txt files.
 
 ## If URL provided
