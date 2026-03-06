@@ -1,5 +1,5 @@
 ---
-name: aeo-audit
+name: aeo
 description: Run AEO audits, fix site issues, validate schema, generate llms.txt, and compare sites.
 allowed-tools:
   - Bash(npx *)
