@@ -1,6 +1,6 @@
 ---
 name: aeo-audit
-description: Audit, fix, and improve AI citation readiness for any site. Covers AEO audits, schema checks, llms.txt generation, and before-vs-after or competitor comparisons.
+description: Run AEO audits, fix site issues, validate schema, generate llms.txt, and compare sites.
 allowed-tools:
   - Bash(npx *)
   - Bash(aeo-audit *)
