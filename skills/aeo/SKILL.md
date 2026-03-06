@@ -11,38 +11,37 @@ allowed-tools:
   - Glob
   - Grep
 context: fork
-argument-hint: <url> [--compare <url2>]
+argument-hint: [audit|fix|schema|llms|monitor] <url> [--compare <url2>]
 ---
 
 # AEO
 
 Website: [ainyc.ai](https://ainyc.ai)
 
-Audit and improve how AI systems understand, extract, and cite a website.
+One skill for audit, fixes, schema, llms.txt, and monitoring workflows.
 
-## What It Covers
+## Modes
 
-- Full AEO audits and score reviews
-- Code fixes for weak or missing AEO signals
-- JSON-LD and schema validation
-- `llms.txt` and `llms-full.txt` generation
-- Before-vs-after tracking and competitor comparisons
+- `audit`: grade and diagnose a site
+- `fix`: apply code changes after an audit
+- `schema`: validate JSON-LD and entity consistency
+- `llms`: create or improve `llms.txt` and `llms-full.txt`
+- `monitor`: compare changes over time or benchmark competitors
 
-## Common Requests
+If no mode is provided, default to `audit`.
 
-- `Audit https://example.com`
-- `Fix AEO issues for https://example.com in this repo`
-- `Validate schema for https://example.com`
-- `Generate llms.txt for this project`
-- `Compare https://site-a.com --compare https://site-b.com`
+## Examples
+
+- `audit https://example.com`
+- `fix https://example.com`
+- `schema https://example.com`
+- `llms https://example.com`
+- `monitor https://site-a.com --compare https://site-b.com`
 
 ## Mode Selection
 
-- Use `Audit` for grading, diagnosis, and benchmarking.
-- Use `Fix` when the user wants code changes.
-- Use `Schema` for JSON-LD, missing properties, or entity consistency.
-- Use `llms.txt` when the user wants AI-readable markdown files.
-- Use `Monitor` for progress tracking or competitor comparisons.
+- If the first argument is one of `audit`, `fix`, `schema`, `llms`, or `monitor`, use that mode.
+- If no explicit mode is given, infer the intent from the request and default to `audit`.
 
 ## Audit
 

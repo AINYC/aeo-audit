@@ -75,27 +75,39 @@ console.log(report.overallScore) // 98
 console.log(report.factors)      // Array of factor results with scores, findings, recommendations
 ```
 
-## Claude Code Skills
+## Claude Code / ClawHub Skill
 
-This package includes 5 Claude Code skills for interactive AEO workflows:
+This package now ships one umbrella skill source at `skills/aeo/SKILL.md`.
 
-| Skill | Command | Description |
-|-------|---------|-------------|
-| AEO Audit | `/aeo-audit <url>` | Full 13-factor audit with formatted report |
-| AEO Fix | `/aeo-fix <url>` | Audit then fix issues in your codebase |
-| Schema Validate | `/aeo-schema-validate <url>` | Focused JSON-LD validation |
-| llms.txt Generate | `/aeo-llms-generate [url]` | Generate optimized llms.txt files |
-| AEO Monitor | `/aeo-monitor <url>` | Track scores over time or compare URLs |
+Command: `/aeo`
+
+Modes:
+
+- `audit` for grading and diagnosis
+- `fix` for code changes after an audit
+- `schema` for JSON-LD validation
+- `llms` for `llms.txt` and `llms-full.txt`
+- `monitor` for before/after tracking or competitor comparisons
+
+Examples:
+
+- `/aeo audit https://example.com`
+- `/aeo fix https://example.com`
+- `/aeo schema https://example.com`
+- `/aeo llms https://example.com`
+- `/aeo monitor https://site-a.com --compare https://site-b.com`
+
+ClawHub package: [arberx/aeo](https://clawhub.ai/arberx/aeo)
 
 ### Install Skills
 
 ```bash
-# All skills (personal)
+# Personal install
 git clone https://github.com/AINYC/aeo-audit.git /tmp/aeo-audit
-cp -r /tmp/aeo-audit/skills/* ~/.claude/skills/
+cp -r /tmp/aeo-audit/skills/aeo ~/.claude/skills/
 
 # Or project-level
-cp -r /tmp/aeo-audit/skills/* .claude/skills/
+cp -r /tmp/aeo-audit/skills/aeo .claude/skills/
 ```
 
 ## Grading Scale
