@@ -1,5 +1,4 @@
 test/
-skills/
 .github/
 .gitignore
 eslint.config.js
