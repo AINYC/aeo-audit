@@ -1,6 +1,6 @@
 {
   "name": "@ainyc/aeo-audit",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "The most comprehensive open-source Answer Engine Optimization (AEO) audit tool. Scores websites across 13 ranking factors that determine AI citation.",
   "type": "module",
   "main": "src/index.js",
@@ -54,7 +54,7 @@
     "type": "git",
     "url": "https://github.com/AINYC/aeo-audit.git"
   },
-  "homepage": "https://github.com/AINYC/aeo-audit#readme",
+  "homepage": "https://ainyc.ai",
   "bugs": {
     "url": "https://github.com/AINYC/aeo-audit/issues"
   }

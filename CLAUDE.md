@@ -4,6 +4,8 @@
 
 @ainyc/aeo-audit — an open-source AEO (Answer Engine Optimization) audit engine and Claude Code skill suite. Scores websites across 13 ranking factors that determine AI citation.
 
+Website: https://ainyc.ai
+
 ## Tech Stack
 
 - **Language:** JavaScript (ESM), no TypeScript
