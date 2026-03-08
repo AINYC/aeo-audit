@@ -1,6 +1,7 @@
 import { clampScore } from './analyzers/helpers.js'
+import type { FactorDefinition, RawFactorResult, ScoredFactorSummary } from './types.js'
 
-export const FACTOR_DEFINITIONS = [
+export const FACTOR_DEFINITIONS: FactorDefinition[] = [
   { id: 'structured-data', name: 'Structured Data (JSON-LD)', weight: 12 },
   { id: 'content-depth', name: 'Content Depth', weight: 10 },
   { id: 'ai-readable-content', name: 'AI-Readable Content', weight: 10 },
@@ -16,11 +17,11 @@ export const FACTOR_DEFINITIONS = [
   { id: 'named-entities', name: 'Named Entities', weight: 6 },
 ]
 
-export const OPTIONAL_FACTOR_DEFINITIONS = [
+export const OPTIONAL_FACTOR_DEFINITIONS: FactorDefinition[] = [
   { id: 'geographic-signals', name: 'Geographic Signals', weight: 7 },
 ]
 
-export function scoreToGrade(score) {
+export function scoreToGrade(score: number): string {
   if (score >= 97) return 'A+'
   if (score >= 93) return 'A'
   if (score >= 90) return 'A-'
@@ -36,13 +37,13 @@ export function scoreToGrade(score) {
   return 'F'
 }
 
-export function scoreToStatus(score) {
+export function scoreToStatus(score: number): 'pass' | 'partial' | 'fail' {
   if (score >= 70) return 'pass'
   if (score >= 40) return 'partial'
   return 'fail'
 }
 
-export function scoreFactors(rawFactorResults) {
+export function scoreFactors(rawFactorResults: RawFactorResult[]): ScoredFactorSummary {
   const factors = rawFactorResults.map((factor) => {
     const score = clampScore(factor.score)
     return {

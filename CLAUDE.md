@@ -8,34 +8,40 @@ Website: https://ainyc.ai
 
 ## Tech Stack
 
-- **Language:** JavaScript (ESM), no TypeScript
+- **Language:** TypeScript (ESM)
 - **Runtime:** Node.js >= 20
 - **Package manager:** pnpm
 - **HTML parsing:** Cheerio
-- **Test runner:** Node.js built-in (`node --test`)
+- **Build:** TypeScript compiler to `dist/`
+- **Typecheck:** `tsc --noEmit`
+- **Test runner:** `tsx --test`
 - **Linter:** ESLint v9 flat config
 
 ## Commands
 
 ```bash
 pnpm install    # Install dependencies
-pnpm test       # Run all tests
-pnpm lint       # Run linter
+pnpm run typecheck  # Static typecheck
+pnpm run build      # Compile src/*.ts to dist/
+pnpm test           # Run all tests
+pnpm lint           # Run linter
 ```
 
 ## Key Files
 
 ```
 src/
-  index.js           # Main entry: runAeoAudit(url, options)
-  scoring.js         # Factor definitions, weights, grade calculation
-  fetch-page.js      # URL fetching with SSRF protection
-  errors.js          # AeoAuditError class
-  cli.js             # CLI argument parsing
+  index.ts           # Main entry: runAeoAudit(url, options)
+  scoring.ts         # Factor definitions, weights, grade calculation
+  fetch-page.ts      # URL fetching with SSRF protection
+  errors.ts          # AeoAuditError class
+  cli.ts             # CLI argument parsing
   formatters/        # json, markdown, text output formatters
   analyzers/         # 14 analyzer modules (13 core + 1 optional)
+  types.ts           # Shared audit/report TypeScript types
+dist/                # Compiled publishable ESM output
 bin/
-  aeo-audit.js       # CLI entry point
+  aeo-audit.js       # CLI entry point -> dist/cli.js
 skills/aeo/          # Single umbrella Claude Code / ClawHub skill
 test/                # Unit and integration tests
 ```
@@ -43,10 +49,11 @@ test/                # Unit and integration tests
 ## Architecture
 
 - Each analyzer receives a context object `{ $, html, url, headers, auxiliary, structuredData, textContent, pageTitle }` and returns `{ score, findings, recommendations }`
-- Scores are weighted and normalized in `scoring.js`; weights sum to 100% for active factors
+- Scores are weighted and normalized in `scoring.ts`; weights sum to 100% for active factors
 - Geographic signals is optional (excluded by default); when included, weights renormalize
 - The `--factors` flag allows running a subset of analyzers
-- SSRF protection blocks private IPs and hostnames in `fetch-page.js`
+- SSRF protection blocks private IPs and hostnames in `fetch-page.ts`
+- Published entrypoints resolve to compiled `dist/` output; run `pnpm run build` before local CLI smoke tests
 
 ## Code Conventions
 

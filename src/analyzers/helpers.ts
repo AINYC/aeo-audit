@@ -1,6 +1,7 @@
-import { load } from 'cheerio'
+import { load, type CheerioAPI } from 'cheerio'
+import type { AuditContext, StructuredDataEntry } from '../types.js'
 
-export function clampScore(score) {
+export function clampScore(score: number): number {
   if (!Number.isFinite(score)) {
     return 0
   }
@@ -8,13 +9,13 @@ export function clampScore(score) {
   return Math.max(0, Math.min(100, Math.round(score)))
 }
 
-export function normalizeText(value = '') {
+export function normalizeText(value = ''): string {
   return value
     .replace(/\s+/g, ' ')
     .trim()
 }
 
-export function normalizeEntityName(value = '') {
+export function normalizeEntityName(value = ''): string {
   return normalizeText(value)
     .toLowerCase()
     .replace(/["'`]/g, '')
@@ -24,7 +25,7 @@ export function normalizeEntityName(value = '') {
     .trim()
 }
 
-export function countWords(value = '') {
+export function countWords(value = ''): number {
   if (!value) {
     return 0
   }
@@ -36,9 +37,9 @@ export function countWords(value = '') {
     .length
 }
 
-export function parseJsonLdScripts($) {
+export function parseJsonLdScripts($: CheerioAPI): StructuredDataEntry[] {
   const scripts = $('script[type="application/ld+json"]')
-  const items = []
+  const items: StructuredDataEntry[] = []
 
   scripts.each((_, element) => {
     const raw = $(element).html()
@@ -47,7 +48,7 @@ export function parseJsonLdScripts($) {
     }
 
     try {
-      const parsed = JSON.parse(raw)
+      const parsed: unknown = JSON.parse(raw)
       flattenStructuredData(parsed, items)
     } catch {
       // Ignore malformed JSON-LD blocks.
@@ -57,7 +58,7 @@ export function parseJsonLdScripts($) {
   return items
 }
 
-function flattenStructuredData(candidate, accumulator) {
+function flattenStructuredData(candidate: unknown, accumulator: StructuredDataEntry[]): void {
   if (!candidate) {
     return
   }
@@ -74,22 +75,24 @@ function flattenStructuredData(candidate, accumulator) {
     return
   }
 
-  if (candidate['@graph']) {
-    flattenStructuredData(candidate['@graph'], accumulator)
+  const structuredCandidate = candidate as StructuredDataEntry
+
+  if (structuredCandidate['@graph']) {
+    flattenStructuredData(structuredCandidate['@graph'], accumulator)
   }
 
-  accumulator.push(candidate)
+  accumulator.push(structuredCandidate)
 }
 
-export function getVisibleText($, html) {
+export function getVisibleText(_$: CheerioAPI, html: string): string {
   const cloned = load(html)
   cloned('script, style, noscript').remove()
 
   return normalizeText(cloned('body').text())
 }
 
-export function extractSchemaTypes(structuredData) {
-  const types = new Set()
+export function extractSchemaTypes(structuredData: StructuredDataEntry[]): Set<string> {
+  const types = new Set<string>()
 
   for (const item of structuredData) {
     const rawType = item?.['@type']
@@ -108,8 +111,8 @@ export function extractSchemaTypes(structuredData) {
   return types
 }
 
-export function getStructuredDataNames(structuredData) {
-  const names = []
+export function getStructuredDataNames(structuredData: StructuredDataEntry[]): string[] {
+  const names: string[] = []
 
   for (const item of structuredData) {
     if (typeof item?.name === 'string' && item.name.trim()) {
@@ -120,7 +123,7 @@ export function getStructuredDataNames(structuredData) {
   return names
 }
 
-export function getBusinessName(context) {
+export function getBusinessName(context: Pick<AuditContext, 'structuredData' | 'pageTitle'>): string {
   const schemaName = getStructuredDataNames(context.structuredData)[0]
   if (schemaName) {
     return schemaName
@@ -134,15 +137,15 @@ export function getBusinessName(context) {
   return title.split(/[|\-–—]/)[0].trim()
 }
 
-export function collectEmails(value = '') {
+export function collectEmails(value = ''): string[] {
   return value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || []
 }
 
-export function collectPhones(value = '') {
+export function collectPhones(value = ''): string[] {
   return value.match(/\+?\d[\d\s().-]{7,}\d/g) || []
 }
 
-export function parseIsoDate(raw) {
+export function parseIsoDate(raw: unknown): Date | null {
   if (!raw || typeof raw !== 'string') {
     return null
   }
@@ -155,7 +158,7 @@ export function parseIsoDate(raw) {
   return parsed
 }
 
-export function domainFromUrl(rawUrl) {
+export function domainFromUrl(rawUrl: string): string {
   try {
     return new URL(rawUrl).hostname.toLowerCase()
   } catch {

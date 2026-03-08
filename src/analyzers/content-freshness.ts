@@ -1,6 +1,7 @@
 import { clampScore, parseIsoDate } from './helpers.js'
+import type { AnalysisResult, AuditContext } from '../types.js'
 
-function monthsAgo(date) {
+function monthsAgo(date: Date): number {
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   if (diffMs < 0) {
@@ -10,7 +11,7 @@ function monthsAgo(date) {
   return diffMs / (1000 * 60 * 60 * 24 * 30)
 }
 
-function extractSitemapLastmod(sitemapXml, targetUrl) {
+function extractSitemapLastmod(sitemapXml: string, targetUrl: string): string | null {
   if (!sitemapXml) {
     return null
   }
@@ -26,12 +27,12 @@ function extractSitemapLastmod(sitemapXml, targetUrl) {
   return match?.[1] || null
 }
 
-export function analyzeContentFreshness(context) {
-  const findings = []
-  const recommendations = []
+export function analyzeContentFreshness(context: AuditContext): AnalysisResult {
+  const findings: AnalysisResult['findings'] = []
+  const recommendations: string[] = []
   let score = 0
 
-  const dateModifiedCandidates = []
+  const dateModifiedCandidates: string[] = []
   for (const item of context.structuredData) {
     if (typeof item?.dateModified === 'string') {
       dateModifiedCandidates.push(item.dateModified)
@@ -40,7 +41,7 @@ export function analyzeContentFreshness(context) {
 
   const parsedModifiedDates = dateModifiedCandidates
     .map((value) => parseIsoDate(value))
-    .filter(Boolean)
+    .filter((value): value is Date => value !== null)
 
   if (parsedModifiedDates.length) {
     const newest = parsedModifiedDates.sort((a, b) => b.getTime() - a.getTime())[0]
@@ -79,7 +80,7 @@ export function analyzeContentFreshness(context) {
 
   const sitemapState = context.auxiliary?.sitemapXml?.state
   if (sitemapState === 'ok') {
-    const sitemapDateRaw = extractSitemapLastmod(context.auxiliary.sitemapXml.body, context.url)
+    const sitemapDateRaw = extractSitemapLastmod(context.auxiliary.sitemapXml?.body || '', context.url)
     const sitemapDate = parseIsoDate(sitemapDateRaw)
 
     if (sitemapDate) {

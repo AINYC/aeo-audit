@@ -1,6 +1,7 @@
 import { clampScore, getBusinessName } from './helpers.js'
+import type { AnalysisResult, AuditContext } from '../types.js'
 
-function properNounDensity(text) {
+function properNounDensity(text: string): number {
   const words = text.split(/\s+/).filter(Boolean)
   if (!words.length) {
     return 0
@@ -10,9 +11,9 @@ function properNounDensity(text) {
   return properNouns.length / words.length
 }
 
-export function analyzeNamedEntities(context) {
-  const findings = []
-  const recommendations = []
+export function analyzeNamedEntities(context: AuditContext): AnalysisResult {
+  const findings: AnalysisResult['findings'] = []
+  const recommendations: string[] = []
   let score = 0
 
   const businessName = getBusinessName(context)

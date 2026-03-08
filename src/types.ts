@@ -1,0 +1,140 @@
+import type { CheerioAPI } from 'cheerio'
+
+export type FindingType = 'found' | 'missing' | 'info' | 'timeout' | 'unreachable'
+
+export interface AuditFinding {
+  type: FindingType
+  message: string
+}
+
+export interface AnalysisResult {
+  score: number
+  findings: AuditFinding[]
+  recommendations: string[]
+}
+
+export interface StructuredDataEntry {
+  [key: string]: unknown
+  '@graph'?: StructuredDataEntry | StructuredDataEntry[]
+  '@type'?: string | string[]
+  acceptedAnswer?: StructuredDataEntry
+  address?: StructuredDataEntry | string
+  areaServed?: unknown
+  contactPoint?: StructuredDataEntry | StructuredDataEntry[]
+  dateModified?: string
+  email?: string
+  founder?: StructuredDataEntry | StructuredDataEntry[] | string
+  geo?: StructuredDataEntry
+  knowsAbout?: unknown
+  mainEntity?: StructuredDataEntry | StructuredDataEntry[]
+  name?: string
+  sameAs?: string | string[]
+  step?: StructuredDataEntry | StructuredDataEntry[]
+  telephone?: string
+}
+
+export type AuxiliaryResourceState = 'ok' | 'missing' | 'timeout' | 'unreachable' | 'not-html'
+
+export interface RedirectHop {
+  status: number
+  from: string
+  to: string
+}
+
+export interface AuxiliaryResource {
+  state: AuxiliaryResourceState
+  url?: string
+  statusCode?: number | null
+  contentType?: string
+  body: string
+  redirectChain?: RedirectHop[]
+  timingMs?: number
+  errorCode?: string
+}
+
+export interface AuxiliaryResources {
+  llmsTxt?: AuxiliaryResource
+  llmsFullTxt?: AuxiliaryResource
+  robotsTxt?: AuxiliaryResource
+  sitemapXml?: AuxiliaryResource
+  [key: string]: AuxiliaryResource | undefined
+}
+
+export interface AuditContext {
+  $: CheerioAPI
+  html: string
+  url: string
+  headers: Record<string, string>
+  auxiliary: AuxiliaryResources
+  structuredData: StructuredDataEntry[]
+  textContent: string
+  pageTitle: string
+}
+
+export interface RunAeoAuditOptions {
+  factors?: string[] | null
+  includeGeo?: boolean
+}
+
+export interface RawFactorResult extends AnalysisResult {
+  id: string
+  name: string
+  weight: number
+}
+
+export interface ScoredFactor extends RawFactorResult {
+  grade: string
+  status: 'pass' | 'partial' | 'fail'
+}
+
+export interface AuditMetadata {
+  fetchTimeMs: number
+  pageTitle: string
+  wordCount: number
+  auxiliary: {
+    llmsTxt: AuxiliaryResourceState | 'missing'
+    llmsFullTxt: AuxiliaryResourceState | 'missing'
+    robotsTxt: AuxiliaryResourceState | 'missing'
+    sitemapXml: AuxiliaryResourceState | 'missing'
+  }
+  redirectChain: RedirectHop[]
+}
+
+export interface AuditReport {
+  url: string
+  finalUrl: string
+  auditedAt: string
+  overallScore: number
+  overallGrade: string
+  summary: string
+  factors: ScoredFactor[]
+  metadata: AuditMetadata
+}
+
+export interface FactorDefinition {
+  id: string
+  name: string
+  weight: number
+}
+
+export interface ScoredFactorSummary {
+  overallScore: number
+  overallGrade: string
+  factors: ScoredFactor[]
+}
+
+export interface FetchedPage {
+  inputUrl: string
+  finalUrl: string
+  html: string
+  headers: Record<string, string>
+  redirectChain: RedirectHop[]
+  auxiliary: Record<string, AuxiliaryResource>
+  timings: {
+    fetchTimeMs: number
+    mainFetchMs: number
+    auxiliaryFetchMs: number
+  }
+}
+
+export type Analyzer = (context: AuditContext) => AnalysisResult | Promise<AnalysisResult>

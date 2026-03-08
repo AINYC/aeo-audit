@@ -1,8 +1,9 @@
 import { clampScore, countWords } from './helpers.js'
+import type { AnalysisResult, AuditContext } from '../types.js'
 
-export function analyzeContentDepth(context) {
-  const findings = []
-  const recommendations = []
+export function analyzeContentDepth(context: AuditContext): AnalysisResult {
+  const findings: AnalysisResult['findings'] = []
+  const recommendations: string[] = []
 
   const wordCount = countWords(context.textContent)
   const h1Count = context.$('h1').length

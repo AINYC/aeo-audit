@@ -1,6 +1,12 @@
 import { clampScore } from './helpers.js'
+import type { AnalysisResult, AuditContext, StructuredDataEntry } from '../types.js'
 
-function findSchemaByType(structuredData, typeName) {
+interface BestSchemaMatch {
+  score: number
+  item: StructuredDataEntry | null
+}
+
+function findSchemaByType(structuredData: StructuredDataEntry[], typeName: string): StructuredDataEntry[] {
   return structuredData.filter((item) => {
     const rawType = item?.['@type']
     const types = Array.isArray(rawType) ? rawType : [rawType]
@@ -8,7 +14,7 @@ function findSchemaByType(structuredData, typeName) {
   })
 }
 
-function propertyCompleteness(item, requiredProps) {
+function propertyCompleteness(item: StructuredDataEntry | null, requiredProps: string[]): number {
   if (!item) {
     return 0
   }
@@ -37,9 +43,9 @@ const ORGANIZATION_PROPS = [
 const FAQ_MIN_PAIRS = 3
 const HOWTO_MIN_STEPS = 3
 
-export function analyzeSchemaCompleteness(context) {
-  const findings = []
-  const recommendations = []
+export function analyzeSchemaCompleteness(context: AuditContext): AnalysisResult {
+  const findings: AnalysisResult['findings'] = []
+  const recommendations: string[] = []
   let score = 0
 
   const structuredData = context.structuredData || []
@@ -60,7 +66,7 @@ export function analyzeSchemaCompleteness(context) {
 
   if (localBiz.length > 0) {
     checksRun += 1
-    const best = localBiz.reduce((max, item) => {
+    const best = localBiz.reduce<BestSchemaMatch>((max, item) => {
       const comp = propertyCompleteness(item, LOCAL_BUSINESS_PROPS)
       return comp > max.score ? { score: comp, item } : max
     }, { score: 0, item: null })
@@ -87,13 +93,13 @@ export function analyzeSchemaCompleteness(context) {
     checksRun += 1
 
     for (const faq of faqPages) {
-      const mainEntity = Array.isArray(faq.mainEntity) ? faq.mainEntity : faq.mainEntity ? [faq.mainEntity] : []
-      const questions = mainEntity.filter((q) => q?.['@type'] === 'Question')
+      const mainEntity = (Array.isArray(faq.mainEntity) ? faq.mainEntity : faq.mainEntity ? [faq.mainEntity] : []) as StructuredDataEntry[]
+      const questions = mainEntity.filter((question) => question?.['@type'] === 'Question')
 
       if (questions.length >= FAQ_MIN_PAIRS) {
         // Check answer quality
-        const substantiveAnswers = questions.filter((q) => {
-          const answer = q.acceptedAnswer?.text || ''
+        const substantiveAnswers = questions.filter((question) => {
+          const answer = typeof question.acceptedAnswer?.text === 'string' ? question.acceptedAnswer.text : ''
           return answer.split(/\s+/).length >= 15
         })
 
@@ -119,8 +125,8 @@ export function analyzeSchemaCompleteness(context) {
     checksRun += 1
 
     for (const howTo of howTos) {
-      const steps = Array.isArray(howTo.step) ? howTo.step : howTo.step ? [howTo.step] : []
-      const stepsWithText = steps.filter((s) => s?.name || s?.text)
+      const steps = (Array.isArray(howTo.step) ? howTo.step : howTo.step ? [howTo.step] : []) as StructuredDataEntry[]
+      const stepsWithText = steps.filter((step) => step?.name || step?.text)
 
       if (stepsWithText.length >= HOWTO_MIN_STEPS) {
         checksScore += 100
@@ -137,7 +143,7 @@ export function analyzeSchemaCompleteness(context) {
   const orgs = findSchemaByType(structuredData, 'Organization')
   if (orgs.length > 0) {
     checksRun += 1
-    const best = orgs.reduce((max, item) => {
+    const best = orgs.reduce<BestSchemaMatch>((max, item) => {
       const comp = propertyCompleteness(item, ORGANIZATION_PROPS)
       return comp > max.score ? { score: comp, item } : max
     }, { score: 0, item: null })

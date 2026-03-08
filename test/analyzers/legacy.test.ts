@@ -9,8 +9,9 @@ import { analyzeContentDepth } from '../../src/analyzers/content-depth.js'
 import { analyzeContentFreshness } from '../../src/analyzers/content-freshness.js'
 import { scoreFactors } from '../../src/scoring.js'
 import { strongHtml, weakHtml, defaultAuxiliary } from '../fixtures/pages.js'
+import type { AuditContext, AuxiliaryResources } from '../../src/types.js'
 
-function buildContext(html, auxiliary = defaultAuxiliary) {
+function buildContext(html: string, auxiliary: AuxiliaryResources = defaultAuxiliary): AuditContext {
   const $ = load(html)
   const structuredData = parseJsonLdScripts($)
   return {

@@ -6,10 +6,11 @@ import {
   normalizeEntityName,
   normalizeText,
 } from './helpers.js'
+import type { AnalysisResult, AuditContext, StructuredDataEntry } from '../types.js'
 
-function extractSchemaContacts(structuredData) {
-  const emails = []
-  const phones = []
+function extractSchemaContacts(structuredData: StructuredDataEntry[]): { emails: string[]; phones: string[] } {
+  const emails: string[] = []
+  const phones: string[] = []
 
   for (const item of structuredData) {
     if (typeof item?.email === 'string') {
@@ -36,9 +37,9 @@ function extractSchemaContacts(structuredData) {
   return { emails, phones }
 }
 
-export function analyzeEntityConsistency(context) {
-  const findings = []
-  const recommendations = []
+export function analyzeEntityConsistency(context: AuditContext): AnalysisResult {
+  const findings: AnalysisResult['findings'] = []
+  const recommendations: string[] = []
   let score = 0
 
   const schemaNames = getStructuredDataNames(context.structuredData)

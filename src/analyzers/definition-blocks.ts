@@ -1,8 +1,9 @@
 import { clampScore, extractSchemaTypes } from './helpers.js'
+import type { AnalysisResult, AuditContext } from '../types.js'
 
-export function analyzeDefinitionBlocks(context) {
-  const findings = []
-  const recommendations = []
+export function analyzeDefinitionBlocks(context: AuditContext): AnalysisResult {
+  const findings: AnalysisResult['findings'] = []
+  const recommendations: string[] = []
   let score = 0
 
   const headingNodes = context.$('h1, h2, h3, h4')

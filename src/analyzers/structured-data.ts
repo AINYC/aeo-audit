@@ -1,10 +1,11 @@
 import { clampScore, extractSchemaTypes } from './helpers.js'
+import type { AnalysisResult, AuditContext } from '../types.js'
 
 const PRIORITY_TYPES = ['LocalBusiness', 'FAQPage', 'Service', 'HowTo']
 
-export function analyzeStructuredData(context) {
-  const findings = []
-  const recommendations = []
+export function analyzeStructuredData(context: AuditContext): AnalysisResult {
+  const findings: AnalysisResult['findings'] = []
+  const recommendations: string[] = []
   const structuredData = context.structuredData || []
   const schemaTypes = extractSchemaTypes(structuredData)
 

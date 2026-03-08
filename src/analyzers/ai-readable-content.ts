@@ -1,6 +1,13 @@
 import { clampScore, countWords } from './helpers.js'
+import type { AnalysisResult, AuditContext, AuxiliaryResource } from '../types.js'
 
-function scoreAuxState(auxEntry, missingMessage, unavailableMessage, findings, recommendations) {
+function scoreAuxState(
+  auxEntry: AuxiliaryResource | undefined,
+  missingMessage: string,
+  unavailableMessage: string,
+  findings: AnalysisResult['findings'],
+  recommendations: string[],
+): number {
   if (!auxEntry || auxEntry.state === 'missing') {
     findings.push({ type: 'missing', message: missingMessage })
     recommendations.push(`Create ${missingMessage.split(' ')[0]} at your site root.`)
@@ -26,9 +33,9 @@ function scoreAuxState(auxEntry, missingMessage, unavailableMessage, findings, r
   return 24
 }
 
-export function analyzeAiReadableContent(context) {
-  const findings = []
-  const recommendations = []
+export function analyzeAiReadableContent(context: AuditContext): AnalysisResult {
+  const findings: AnalysisResult['findings'] = []
+  const recommendations: string[] = []
   const auxiliary = context.auxiliary || {}
   let score = 0
 

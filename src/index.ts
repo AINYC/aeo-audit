@@ -17,8 +17,9 @@ import { analyzeSchemaCompleteness } from './analyzers/schema-completeness.js'
 import { analyzeContentExtractability } from './analyzers/content-extractability.js'
 import { getVisibleText, parseJsonLdScripts, countWords } from './analyzers/helpers.js'
 import { FACTOR_DEFINITIONS, OPTIONAL_FACTOR_DEFINITIONS, scoreFactors } from './scoring.js'
+import type { Analyzer, AuditContext, AuditReport, RunAeoAuditOptions, ScoredFactor } from './types.js'
 
-const ANALYZER_BY_ID = {
+const ANALYZER_BY_ID: Record<string, Analyzer> = {
   'structured-data': analyzeStructuredData,
   'ai-readable-content': analyzeAiReadableContent,
   'entity-consistency': analyzeEntityConsistency,
@@ -40,7 +41,7 @@ const ALL_FACTOR_IDS = new Set([
   ...OPTIONAL_FACTOR_DEFINITIONS.map((d) => d.id),
 ])
 
-function buildSummary(factors, overallGrade) {
+function buildSummary(factors: ScoredFactor[], overallGrade: string): string {
   if (!factors.length) {
     return `Overall grade ${overallGrade}. No factors evaluated.`
   }
@@ -52,12 +53,13 @@ function buildSummary(factors, overallGrade) {
   return `Overall grade ${overallGrade}. Strongest signals: ${strengths.join(', ')}. Biggest opportunities: ${weaknesses.join(', ')}.`
 }
 
-export async function runAeoAudit(rawUrl, options = {}) {
+export async function runAeoAudit(rawUrl: string, options: RunAeoAuditOptions = {}): Promise<AuditReport> {
   const normalizedUrl = normalizeTargetUrl(rawUrl)
+  const selectedFactors = options.factors ?? []
 
   // Validate factor IDs if provided
-  if (options.factors && options.factors.length > 0) {
-    const invalid = options.factors.filter((id) => !ALL_FACTOR_IDS.has(id))
+  if (selectedFactors.length > 0) {
+    const invalid = selectedFactors.filter((id) => !ALL_FACTOR_IDS.has(id))
     if (invalid.length > 0) {
       throw new AeoAuditError('BAD_INPUT', `Unknown factor ID(s): ${invalid.join(', ')}. Valid IDs: ${[...ALL_FACTOR_IDS].join(', ')}`)
     }
@@ -69,7 +71,7 @@ export async function runAeoAudit(rawUrl, options = {}) {
   const structuredData = parseJsonLdScripts($)
   const textContent = getVisibleText($, fetchedPage.html)
 
-  const context = {
+  const context: AuditContext = {
     $,
     html: fetchedPage.html,
     url: fetchedPage.finalUrl,
@@ -87,13 +89,13 @@ export async function runAeoAudit(rawUrl, options = {}) {
     activeDefs = [...activeDefs, ...OPTIONAL_FACTOR_DEFINITIONS]
   }
 
-  if (options.factors && options.factors.length > 0) {
-    activeDefs = activeDefs.filter((def) => options.factors.includes(def.id))
+  if (selectedFactors.length > 0) {
+    activeDefs = activeDefs.filter((def) => selectedFactors.includes(def.id))
   }
 
   const rawFactorResults = await Promise.all(
     activeDefs.map(async (definition) => {
-      const analyzer = ANALYZER_BY_ID[definition.id]
+      const analyzer = ANALYZER_BY_ID[definition.id]!
       const result = await analyzer(context)
 
       return {

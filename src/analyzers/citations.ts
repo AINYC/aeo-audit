@@ -1,6 +1,13 @@
 import { clampScore, domainFromUrl } from './helpers.js'
+import type { AnalysisResult, AuditContext } from '../types.js'
 
-function anchorQuality(anchorText) {
+interface ExternalLink {
+  url: string
+  hostname: string
+  text: string
+}
+
+function anchorQuality(anchorText: string): number {
   const words = anchorText.trim().split(/\s+/).filter(Boolean)
   if (!words.length) {
     return 0
@@ -17,13 +24,13 @@ function anchorQuality(anchorText) {
   return 0.2
 }
 
-export function analyzeCitations(context) {
-  const findings = []
-  const recommendations = []
+export function analyzeCitations(context: AuditContext): AnalysisResult {
+  const findings: AnalysisResult['findings'] = []
+  const recommendations: string[] = []
   let score = 0
 
   const pageDomain = domainFromUrl(context.url)
-  const externalLinks = []
+  const externalLinks: ExternalLink[] = []
 
   context.$('a[href]').each((_, element) => {
     const href = context.$(element).attr('href')
