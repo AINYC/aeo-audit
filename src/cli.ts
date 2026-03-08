@@ -3,6 +3,7 @@ import { isAeoAuditError } from './errors.js'
 import { formatJson } from './formatters/json.js'
 import { formatMarkdown } from './formatters/markdown.js'
 import { formatText } from './formatters/text.js'
+import type { AuditReport, RunAeoAuditOptions } from './types.js'
 
 const FORMATTERS = {
   json: formatJson,
@@ -10,16 +11,30 @@ const FORMATTERS = {
   text: formatText,
 }
 
-function parseArgs(argv) {
+type FormatterName = keyof typeof FORMATTERS
+
+interface ParsedArgs {
+  url: string | null
+  format: string
+  factors: string[] | null
+  includeGeo: boolean
+  help: boolean
+}
+
+function isFormatterName(value: string): value is FormatterName {
+  return value in FORMATTERS
+}
+
+function parseArgs(argv: string[]): ParsedArgs {
   const args = argv.slice(2)
-  const result = { url: null, format: 'text', factors: null, includeGeo: false }
+  const result: ParsedArgs = { url: null, format: 'text', factors: null, includeGeo: false, help: false }
 
   for (let i = 0; i < args.length; i += 1) {
     if (args[i] === '--format' && args[i + 1]) {
       result.format = args[i + 1]
       i += 1
     } else if (args[i] === '--factors' && args[i + 1]) {
-      result.factors = args[i + 1].split(',').map((f) => f.trim())
+      result.factors = args[i + 1].split(',').map((factor) => factor.trim())
       i += 1
     } else if (args[i] === '--include-geo') {
       result.includeGeo = true
@@ -51,7 +66,7 @@ Examples:
 `)
 }
 
-export async function main(argv = process.argv) {
+export async function main(argv: string[] = process.argv): Promise<number> {
   const args = parseArgs(argv)
 
   if (args.help) {
@@ -64,25 +79,30 @@ export async function main(argv = process.argv) {
     return 1
   }
 
-  const formatter = FORMATTERS[args.format]
-  if (!formatter) {
+  if (!isFormatterName(args.format)) {
     console.error(`Error: Unknown format "${args.format}". Use: text, json, markdown`)
     return 1
   }
 
+  const formatter = FORMATTERS[args.format]
+
   try {
-    const report = await runAeoAudit(args.url, {
+    const options: RunAeoAuditOptions = {
       factors: args.factors,
       includeGeo: args.includeGeo,
-    })
+    }
+
+    const report = await runAeoAudit(args.url, options)
 
     console.log(formatter(report))
     return report.overallScore >= 70 ? 0 : 1
   } catch (error) {
     if (isAeoAuditError(error)) {
       console.error(`Error [${error.code}]: ${error.message}`)
-    } else {
+    } else if (error instanceof Error) {
       console.error(`Error: ${error.message}`)
+    } else {
+      console.error(`Error: ${String(error)}`)
     }
 
     return 1

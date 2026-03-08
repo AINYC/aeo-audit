@@ -1,8 +1,9 @@
 import { clampScore, countWords, normalizeText } from './helpers.js'
+import type { AnalysisResult, AuditContext } from '../types.js'
 
-export function analyzeContentExtractability(context) {
-  const findings = []
-  const recommendations = []
+export function analyzeContentExtractability(context: AuditContext): AnalysisResult {
+  const findings: AnalysisResult['findings'] = []
+  const recommendations: string[] = []
   let score = 0
 
   // Content-to-boilerplate ratio

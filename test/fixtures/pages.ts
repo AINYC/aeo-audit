@@ -1,3 +1,5 @@
+import type { AuxiliaryResources } from '../../src/types.js'
+
 export const strongHtml = `
 <!doctype html>
 <html lang="en">
@@ -110,4 +112,4 @@ export const defaultAuxiliary = {
     state: 'ok',
     body: `<urlset><url><loc>https://ainyc.ai/</loc><lastmod>2026-02-20</lastmod></url></urlset>`,
   },
-}
+} satisfies AuxiliaryResources

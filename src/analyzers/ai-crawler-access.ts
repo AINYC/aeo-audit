@@ -1,4 +1,15 @@
 import { clampScore } from './helpers.js'
+import type { AnalysisResult, AuditContext } from '../types.js'
+
+interface RobotRule {
+  type: 'allow' | 'disallow'
+  path: string
+}
+
+interface RobotGroup {
+  agents: string[]
+  rules: RobotRule[]
+}
 
 const AI_CRAWLERS = [
   { name: 'GPTBot', points: 18 },
@@ -8,14 +19,14 @@ const AI_CRAWLERS = [
   { name: 'Google-Extended', points: 14 },
 ]
 
-function parseRobotsTxt(robotsTxt) {
+function parseRobotsTxt(robotsTxt: string): RobotGroup[] {
   const lines = robotsTxt
     .split(/\r?\n/)
     .map((line) => line.split('#')[0].trim())
     .filter(Boolean)
 
-  const groups = []
-  let currentGroup = null
+  const groups: RobotGroup[] = []
+  let currentGroup: RobotGroup | null = null
 
   for (const line of lines) {
     const colonIndex = line.indexOf(':')
@@ -49,7 +60,7 @@ function parseRobotsTxt(robotsTxt) {
   return groups
 }
 
-function isBotAllowedForPath(groups, botName, urlPath) {
+function isBotAllowedForPath(groups: RobotGroup[], botName: string, urlPath: string): boolean {
   const botLower = botName.toLowerCase()
   const path = urlPath || '/'
 
@@ -69,7 +80,7 @@ function isBotAllowedForPath(groups, botName, urlPath) {
   }
 
   // Evaluate rules: longest matching path wins. On tie, Allow beats Disallow.
-  let bestMatch = null
+  let bestMatch: RobotRule | null = null
 
   for (const rule of matchingGroup.rules) {
     const rulePath = rule.path || ''
@@ -94,9 +105,9 @@ function isBotAllowedForPath(groups, botName, urlPath) {
   return bestMatch.type === 'allow'
 }
 
-export function analyzeAiCrawlerAccess(context) {
-  const findings = []
-  const recommendations = []
+export function analyzeAiCrawlerAccess(context: AuditContext): AnalysisResult {
+  const findings: AnalysisResult['findings'] = []
+  const recommendations: string[] = []
   let score = 0
 
   const robotsState = context.auxiliary?.robotsTxt?.state
@@ -114,7 +125,7 @@ export function analyzeAiCrawlerAccess(context) {
     return { score: clampScore(score), findings, recommendations }
   }
 
-  const robotsTxt = context.auxiliary.robotsTxt.body || ''
+  const robotsTxt = context.auxiliary.robotsTxt?.body || ''
   const groups = parseRobotsTxt(robotsTxt)
 
   // Determine the path of the audited URL
@@ -126,7 +137,7 @@ export function analyzeAiCrawlerAccess(context) {
   }
 
   let _allowedCount = 0
-  const blockedBots = []
+  const blockedBots: string[] = []
 
   for (const crawler of AI_CRAWLERS) {
     const allowed = isBotAllowedForPath(groups, crawler.name, auditedPath)

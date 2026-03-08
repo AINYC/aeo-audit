@@ -4,14 +4,14 @@ description: Run AEO audits, fix site issues, validate schema, generate llms.txt
 allowed-tools:
   - Bash(npx *)
   - Bash(aeo-audit *)
+  - Bash(pnpm run build)
+  - Bash(node bin/aeo-audit.js *)
   - Bash(curl *)
   - Read
   - Edit
   - Write
   - Glob
   - Grep
-context: fork
-argument-hint: [audit|fix|schema|llms|monitor] <url> [--compare <url2>]
 ---
 
 # AEO
@@ -19,6 +19,11 @@ argument-hint: [audit|fix|schema|llms|monitor] <url> [--compare <url2>]
 Website: [ainyc.ai](https://ainyc.ai)
 
 One skill for audit, fixes, schema, llms.txt, and monitoring workflows.
+
+## Command Choice
+
+- Use `npx @ainyc/aeo-audit@latest ...` when auditing a deployed site with the published package.
+- If working inside this repository to verify unpublished changes, run `pnpm run build` first and use `node bin/aeo-audit.js ...`.
 
 ## Modes
 
@@ -51,6 +56,10 @@ Use for broad requests such as "audit this site" or "why am I not being cited?"
    ```bash
    npx @ainyc/aeo-audit@latest $ARGUMENTS --format json
    ```
+   Local repo alternative:
+   ```bash
+   node bin/aeo-audit.js $ARGUMENTS --format json
+   ```
 2. Return:
    - Overall grade and score
    - Short summary
@@ -66,6 +75,10 @@ Use when the user wants code changes applied after the audit.
 1. Run:
    ```bash
    npx @ainyc/aeo-audit@latest $ARGUMENTS --format json
+   ```
+   Local repo alternative:
+   ```bash
+   node bin/aeo-audit.js $ARGUMENTS --format json
    ```
 2. Find factors with status `partial` or `fail`.
 3. Apply targeted fixes in the current codebase.
@@ -91,6 +104,10 @@ Use when the request is specifically about JSON-LD or schema quality.
    ```bash
    npx @ainyc/aeo-audit@latest $ARGUMENTS --format json --factors structured-data,schema-completeness,entity-consistency
    ```
+   Local repo alternative:
+   ```bash
+   node bin/aeo-audit.js $ARGUMENTS --format json --factors structured-data,schema-completeness,entity-consistency
+   ```
 2. Report:
    - Schema types found
    - Property completeness by type
@@ -112,6 +129,10 @@ If a URL is provided:
 1. Run:
    ```bash
    npx @ainyc/aeo-audit@latest $ARGUMENTS --format json --factors ai-readable-content
+   ```
+   Local repo alternative:
+   ```bash
+   node bin/aeo-audit.js $ARGUMENTS --format json --factors ai-readable-content
    ```
 2. Inspect existing AI-readable files if present.
 3. Extract key content from the site.

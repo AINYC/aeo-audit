@@ -6,25 +6,27 @@ const YELLOW = '\x1b[33m'
 const RED = '\x1b[31m'
 const CYAN = '\x1b[36m'
 
-function gradeColor(grade) {
+import type { AuditReport, ScoredFactor } from '../types.js'
+
+function gradeColor(grade: string): string {
   if (grade.startsWith('A')) return GREEN
   if (grade.startsWith('B')) return YELLOW
   return RED
 }
 
-function statusIcon(status) {
+function statusIcon(status: ScoredFactor['status']): string {
   if (status === 'pass') return `${GREEN}✓${RESET}`
   if (status === 'partial') return `${YELLOW}~${RESET}`
   return `${RED}✗${RESET}`
 }
 
-function bar(score, width = 20) {
+function bar(score: number, width = 20): string {
   const filled = Math.round((score / 100) * width)
   const color = score >= 70 ? GREEN : score >= 40 ? YELLOW : RED
   return `${color}${'█'.repeat(filled)}${DIM}${'░'.repeat(width - filled)}${RESET}`
 }
 
-export function formatText(report) {
+export function formatText(report: AuditReport): string {
   const lines = []
 
   const gc = gradeColor(report.overallGrade)

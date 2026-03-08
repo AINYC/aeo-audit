@@ -1,4 +1,6 @@
-export function formatMarkdown(report) {
+import type { AuditReport } from '../types.js'
+
+export function formatMarkdown(report: AuditReport): string {
   const lines = []
 
   lines.push(`# AEO Audit Report`)

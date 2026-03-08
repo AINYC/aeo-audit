@@ -10,6 +10,21 @@ Website: [ainyc.ai](https://ainyc.ai)
 npx @ainyc/aeo-audit https://example.com
 ```
 
+## Local Development
+
+```bash
+pnpm install
+pnpm run typecheck
+pnpm run build
+pnpm run test
+pnpm run lint
+
+# Smoke test the compiled CLI from this repo
+node bin/aeo-audit.js https://example.com --format json
+```
+
+The package source lives in `src/*.ts` and publishes compiled ESM plus declarations from `dist/`.
+
 ## Why AEO?
 
 AI answer engines are replacing traditional search for millions of queries. Getting cited by ChatGPT or Perplexity requires different signals than ranking in Google:
@@ -62,7 +77,7 @@ Exit code `0` for score >= 70, `1` for < 70 (CI-friendly).
 
 ## Programmatic Usage
 
-```javascript
+```ts
 import { runAeoAudit } from '@ainyc/aeo-audit'
 
 const report = await runAeoAudit('https://example.com', {
@@ -74,6 +89,8 @@ console.log(report.overallGrade) // 'A+'
 console.log(report.overallScore) // 98
 console.log(report.factors)      // Array of factor results with scores, findings, recommendations
 ```
+
+TypeScript declaration files are included automatically.
 
 ## Claude Code / ClawHub Skill
 
@@ -98,6 +115,13 @@ Examples:
 - `/aeo monitor https://site-a.com --compare https://site-b.com`
 
 ClawHub package: [arberx/aeo](https://clawhub.ai/arberx/aeo)
+
+If you are testing the skill from this repository instead of the published package, build first and use the local CLI:
+
+```bash
+pnpm run build
+node bin/aeo-audit.js https://example.com --format json
+```
 
 ### Install Skills
 

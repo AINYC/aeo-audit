@@ -1,29 +1,46 @@
 {
   "name": "@ainyc/aeo-audit",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "The most comprehensive open-source Answer Engine Optimization (AEO) audit tool. Scores websites across 13 ranking factors that determine AI citation.",
   "type": "module",
-  "main": "src/index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "bin": {
     "aeo-audit": "bin/aeo-audit.js"
   },
   "exports": {
-    ".": "./src/index.js",
-    "./scoring": "./src/scoring.js",
-    "./analyzers/*": "./src/analyzers/*.js",
-    "./formatters/*": "./src/formatters/*.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./scoring": {
+      "types": "./dist/scoring.d.ts",
+      "default": "./dist/scoring.js"
+    },
+    "./analyzers/*": {
+      "types": "./dist/analyzers/*.d.ts",
+      "default": "./dist/analyzers/*.js"
+    },
+    "./formatters/*": {
+      "types": "./dist/formatters/*.d.ts",
+      "default": "./dist/formatters/*.js"
+    }
   },
   "files": [
-    "src/",
+    "dist/",
     "bin/",
     "skills/",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --test test/**/*.test.js test/*.test.js",
-    "lint": "eslint src/ test/ bin/",
-    "prepublishOnly": "npm test && npm run lint"
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts test/analyzers/*.test.ts",
+    "pretest:e2e": "pnpm run build",
+    "test:e2e": "tsx --test test/e2e/*.test.ts",
+    "lint": "eslint src/ test/ bin/ eslint.config.js",
+    "prepublishOnly": "pnpm run typecheck && pnpm run build && pnpm run test && pnpm run test:e2e && pnpm run lint"
   },
   "dependencies": {
     "cheerio": "^1.0.0",
@@ -31,8 +48,12 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@types/node": "^24.5.1",
     "eslint": "^9.0.0",
-    "globals": "^17.4.0"
+    "globals": "^17.4.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.43.0"
   },
   "engines": {
     "node": ">=20"

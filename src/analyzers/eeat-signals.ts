@@ -1,6 +1,7 @@
 import { clampScore, extractSchemaTypes } from './helpers.js'
+import type { AnalysisResult, AuditContext, StructuredDataEntry } from '../types.js'
 
-function findSchemaByType(structuredData, typeName) {
+function findSchemaByType(structuredData: StructuredDataEntry[], typeName: string): StructuredDataEntry[] {
   return structuredData.filter((item) => {
     const rawType = item?.['@type']
     const types = Array.isArray(rawType) ? rawType : [rawType]
@@ -8,9 +9,9 @@ function findSchemaByType(structuredData, typeName) {
   })
 }
 
-export function analyzeEeatSignals(context) {
-  const findings = []
-  const recommendations = []
+export function analyzeEeatSignals(context: AuditContext): AnalysisResult {
+  const findings: AnalysisResult['findings'] = []
+  const recommendations: string[] = []
   let score = 0
 
   // Person schema with credentials (jobTitle, alumniOf, hasCredential)

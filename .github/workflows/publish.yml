@@ -38,7 +38,13 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         if: steps.version.outputs.changed == 'true'
+      - run: pnpm run typecheck
+        if: steps.version.outputs.changed == 'true'
+      - run: pnpm run build
+        if: steps.version.outputs.changed == 'true'
       - run: pnpm test
+        if: steps.version.outputs.changed == 'true'
+      - run: pnpm run test:e2e
         if: steps.version.outputs.changed == 'true'
       - run: npm publish --provenance --access public
         if: steps.version.outputs.changed == 'true'

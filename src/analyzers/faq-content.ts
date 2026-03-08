@@ -1,8 +1,9 @@
 import { clampScore, extractSchemaTypes } from './helpers.js'
+import type { AnalysisResult, AuditContext } from '../types.js'
 
-export function analyzeFaqContent(context) {
-  const findings = []
-  const recommendations = []
+export function analyzeFaqContent(context: AuditContext): AnalysisResult {
+  const findings: AnalysisResult['findings'] = []
+  const recommendations: string[] = []
   let score = 0
 
   const schemaTypes = extractSchemaTypes(context.structuredData)

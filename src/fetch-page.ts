@@ -1,6 +1,41 @@
 import dns from 'node:dns/promises'
 import ipaddr from 'ipaddr.js'
 import { AeoAuditError, isAeoAuditError } from './errors.js'
+import type {
+  AuxiliaryResource,
+  AuxiliaryResourceState,
+  AuxiliaryResources,
+  FetchedPage,
+  RedirectHop,
+} from './types.js'
+
+interface AuxiliarySpec {
+  key: keyof AuxiliaryResources
+  path: string
+  kind: 'text' | 'xml'
+}
+
+interface TimedFetchOptions {
+  timeoutMs: number
+  headers?: HeadersInit
+  redirect?: RequestRedirect
+}
+
+interface ReadBodyOptions {
+  maxBytes: number
+  requireHtmlSniff?: boolean
+}
+
+interface FetchWithRedirectOptions {
+  timeoutMs: number
+  maxRedirects?: number
+}
+
+interface RedirectFetchResult {
+  response: Response
+  finalUrl: string
+  redirectChain: RedirectHop[]
+}
 
 const USER_AGENT = 'AINYC-AEO-Audit/1.0'
 const MAIN_TIMEOUT_MS = 10_000
@@ -9,7 +44,7 @@ const MAIN_MAX_BYTES = 5 * 1024 * 1024
 const AUX_MAX_BYTES = 1024 * 1024
 const MAX_REDIRECTS = 5
 
-const AUXILIARY_SPECS = [
+const AUXILIARY_SPECS: AuxiliarySpec[] = [
   { key: 'llmsTxt', path: '/llms.txt', kind: 'text' },
   { key: 'llmsFullTxt', path: '/llms-full.txt', kind: 'text' },
   { key: 'robotsTxt', path: '/robots.txt', kind: 'text' },
@@ -22,7 +57,7 @@ const HTML_CONTENT_TYPES = ['text/html', 'application/xhtml+xml']
 const TEXT_LIKE_CONTENT_TYPES = ['text/', 'application/json', 'application/xml', 'text/xml', 'application/xhtml+xml']
 const AMBIGUOUS_CONTENT_TYPES = ['text/plain', 'application/octet-stream']
 
-function stripPort(hostname = '') {
+function stripPort(hostname = ''): string {
   const closingBracketIndex = hostname.indexOf(']')
   if (hostname.startsWith('[') && closingBracketIndex !== -1) {
     return hostname.slice(1, closingBracketIndex)
@@ -32,7 +67,7 @@ function stripPort(hostname = '') {
   return segments.length > 2 ? hostname : segments[0]
 }
 
-export function normalizeTargetUrl(rawUrl) {
+export function normalizeTargetUrl(rawUrl: unknown): URL {
   if (typeof rawUrl !== 'string') {
     throw new AeoAuditError('BAD_INPUT', 'A target URL is required.')
   }
@@ -60,7 +95,7 @@ export function normalizeTargetUrl(rawUrl) {
   return parsed
 }
 
-export function isHostnameBlocked(hostname) {
+export function isHostnameBlocked(hostname: string): boolean {
   const normalized = stripPort(hostname).toLowerCase().replace(/\.$/, '')
 
   if (!normalized) {
@@ -83,25 +118,45 @@ export function isHostnameBlocked(hostname) {
   return false
 }
 
-export function isPublicIpAddress(ip) {
+export function isPublicIpAddress(ip: string): boolean {
   if (!ipaddr.isValid(ip)) {
     return false
   }
 
   const parsed = ipaddr.parse(ip)
 
-  if (parsed.kind() === 'ipv6' && parsed.isIPv4MappedAddress()) {
-    return isPublicIpAddress(parsed.toIPv4Address().toString())
+  if (parsed.kind() === 'ipv6') {
+    const ipv6 = parsed as { isIPv4MappedAddress(): boolean; toIPv4Address(): { toString(): string } }
+    if (ipv6.isIPv4MappedAddress()) {
+      return isPublicIpAddress(ipv6.toIPv4Address().toString())
+    }
   }
 
   return parsed.range() === 'unicast'
 }
 
-function isDnsNotFoundError(error) {
-  return ['ENODATA', 'ENOTFOUND', 'EAI_AGAIN', 'SERVFAIL', 'ETIMEOUT'].includes(error?.code)
+function getErrorCode(error: unknown): string | undefined {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const code = (error as { code?: unknown }).code
+    return typeof code === 'string' ? code : undefined
+  }
+
+  return undefined
 }
 
-async function resolveHostAddresses(hostname) {
+function getErrorMessage(error: unknown): string | undefined {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return undefined
+}
+
+function isDnsNotFoundError(error: unknown): boolean {
+  return ['ENODATA', 'ENOTFOUND', 'EAI_AGAIN', 'SERVFAIL', 'ETIMEOUT'].includes(getErrorCode(error) || '')
+}
+
+async function resolveHostAddresses(hostname: string): Promise<string[]> {
   if (ipaddr.isValid(hostname)) {
     return [hostname]
   }
@@ -114,7 +169,7 @@ async function resolveHostAddresses(hostname) {
       ips.push(...result.value)
     } else if (!isDnsNotFoundError(result.reason)) {
       throw new AeoAuditError('UNREACHABLE', `Could not resolve host "${hostname}".`, {
-        details: { reason: result.reason?.message },
+        details: { reason: getErrorMessage(result.reason) },
       })
     }
   }
@@ -126,7 +181,7 @@ async function resolveHostAddresses(hostname) {
   return ips
 }
 
-async function validatePublicRequestTarget(targetUrl) {
+async function validatePublicRequestTarget(targetUrl: URL): Promise<string[]> {
   if (!['http:', 'https:'].includes(targetUrl.protocol)) {
     throw new AeoAuditError('UNSUPPORTED_PROTOCOL', 'Only HTTP and HTTPS URLs are supported.')
   }
@@ -147,11 +202,11 @@ async function validatePublicRequestTarget(targetUrl) {
   return ips
 }
 
-function isRedirectStatus(status) {
+function isRedirectStatus(status: number): boolean {
   return status >= 300 && status < 400
 }
 
-async function timedFetch(url, options = {}) {
+async function timedFetch(url: URL | string, options: TimedFetchOptions): Promise<Response> {
   const { timeoutMs, headers, redirect = 'manual' } = options
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
@@ -168,7 +223,7 @@ async function timedFetch(url, options = {}) {
       },
     })
   } catch (error) {
-    if (error?.name === 'AbortError') {
+    if (error instanceof Error && error.name === 'AbortError') {
       throw new AeoAuditError('TIMEOUT', `Request timed out after ${timeoutMs}ms.`, { cause: error })
     }
 
@@ -178,11 +233,11 @@ async function timedFetch(url, options = {}) {
   }
 }
 
-async function fetchWithValidatedRedirects(startUrl, options = {}) {
+async function fetchWithValidatedRedirects(startUrl: URL | string, options: FetchWithRedirectOptions): Promise<RedirectFetchResult> {
   const { timeoutMs, maxRedirects = MAX_REDIRECTS } = options
 
   let currentUrl = new URL(startUrl.toString())
-  const redirectChain = []
+  const redirectChain: RedirectHop[] = []
 
   for (;;) {
     await validatePublicRequestTarget(currentUrl)
@@ -227,7 +282,7 @@ async function fetchWithValidatedRedirects(startUrl, options = {}) {
   }
 }
 
-function looksLikeHtml(sample) {
+function looksLikeHtml(sample: string): boolean {
   const normalized = sample.trim().slice(0, 4096).toLowerCase()
   if (!normalized) {
     return false
@@ -241,17 +296,17 @@ function looksLikeHtml(sample) {
   )
 }
 
-function isHtmlContentType(contentType = '') {
+function isHtmlContentType(contentType = ''): boolean {
   const normalized = contentType.toLowerCase()
   return HTML_CONTENT_TYPES.some((type) => normalized.includes(type))
 }
 
-function isAmbiguousContentType(contentType = '') {
+function isAmbiguousContentType(contentType = ''): boolean {
   const normalized = contentType.toLowerCase()
   return !normalized || AMBIGUOUS_CONTENT_TYPES.some((type) => normalized.includes(type))
 }
 
-function isLikelyTextContent(contentType = '', body = '') {
+function isLikelyTextContent(contentType = '', body = ''): boolean {
   const normalized = contentType.toLowerCase()
   if (!normalized) {
     return !hasDisallowedControlChars(body.slice(0, 2048))
@@ -264,7 +319,7 @@ function isLikelyTextContent(contentType = '', body = '') {
   return false
 }
 
-function hasDisallowedControlChars(value) {
+function hasDisallowedControlChars(value: string): boolean {
   for (let index = 0; index < value.length; index += 1) {
     const code = value.charCodeAt(index)
     if (code === 9 || code === 10 || code === 13) {
@@ -279,14 +334,14 @@ function hasDisallowedControlChars(value) {
   return false
 }
 
-async function readBodyAsText(response, options = {}) {
+async function readBodyAsText(response: Response, options: ReadBodyOptions): Promise<string> {
   const { maxBytes, requireHtmlSniff = false } = options
   const reader = response.body?.getReader()
   if (!reader) {
     return ''
   }
 
-  const chunks = []
+  const chunks: Buffer[] = []
   let totalBytes = 0
   let sniffSample = ''
   let sniffed = false
@@ -326,7 +381,7 @@ async function readBodyAsText(response, options = {}) {
   return Buffer.concat(chunks).toString('utf8')
 }
 
-function classifyAuxiliaryState(spec, response, bodyText) {
+function classifyAuxiliaryState(spec: AuxiliarySpec, response: Response, bodyText: string): AuxiliaryResourceState {
   const contentType = response.headers.get('content-type') || ''
 
   if (!response.ok) {
@@ -352,7 +407,7 @@ function classifyAuxiliaryState(spec, response, bodyText) {
   return 'ok'
 }
 
-async function fetchAuxiliaryFile(origin, spec) {
+async function fetchAuxiliaryFile(origin: string, spec: AuxiliarySpec): Promise<AuxiliaryResource> {
   const startedAt = Date.now()
   const targetUrl = new URL(spec.path, origin)
 
@@ -407,7 +462,7 @@ async function fetchAuxiliaryFile(origin, spec) {
   }
 }
 
-export async function fetchPage(rawUrl) {
+export async function fetchPage(rawUrl: string): Promise<FetchedPage> {
   const startedAt = Date.now()
   const normalizedUrl = normalizeTargetUrl(rawUrl)
 
@@ -440,7 +495,7 @@ export async function fetchPage(rawUrl) {
   const auxiliaryFetchStartedAt = Date.now()
   const origin = new URL(finalUrl).origin
   const auxiliaryEntries = await Promise.all(
-    AUXILIARY_SPECS.map(async (spec) => {
+    AUXILIARY_SPECS.map(async (spec): Promise<[keyof AuxiliaryResources, AuxiliaryResource]> => {
       const result = await fetchAuxiliaryFile(origin, spec)
       return [spec.key, result]
     }),
@@ -452,7 +507,7 @@ export async function fetchPage(rawUrl) {
     html,
     headers: Object.fromEntries(response.headers.entries()),
     redirectChain,
-    auxiliary: Object.fromEntries(auxiliaryEntries),
+    auxiliary: Object.fromEntries(auxiliaryEntries) as Record<string, AuxiliaryResource>,
     timings: {
       fetchTimeMs: Date.now() - startedAt,
       mainFetchMs: auxiliaryFetchStartedAt - startedAt,

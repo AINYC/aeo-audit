@@ -1,20 +1,21 @@
 import { clampScore, extractSchemaTypes } from './helpers.js'
+import type { AnalysisResult, AuditContext, StructuredDataEntry } from '../types.js'
 
-function hasAddressInSchema(structuredData) {
+function hasAddressInSchema(structuredData: StructuredDataEntry[]): boolean {
   return structuredData.some((item) => typeof item?.address === 'object' && item.address)
 }
 
-function hasGeoInSchema(structuredData) {
+function hasGeoInSchema(structuredData: StructuredDataEntry[]): boolean {
   return structuredData.some((item) => typeof item?.geo === 'object' && item.geo)
 }
 
-function hasAreaServed(structuredData) {
+function hasAreaServed(structuredData: StructuredDataEntry[]): boolean {
   return structuredData.some((item) => item?.areaServed)
 }
 
-export function analyzeGeographicSignals(context) {
-  const findings = []
-  const recommendations = []
+export function analyzeGeographicSignals(context: AuditContext): AnalysisResult {
+  const findings: AnalysisResult['findings'] = []
+  const recommendations: string[] = []
   let score = 0
 
   const schemaTypes = extractSchemaTypes(context.structuredData)
