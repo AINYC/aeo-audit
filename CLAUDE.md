@@ -2,69 +2,94 @@
 
 ## Project Overview
 
-@ainyc/aeo-audit — an open-source AEO (Answer Engine Optimization) audit engine and single umbrella Claude Code / ClawHub skill. Scores websites across 13 ranking factors that determine AI citation.
+`@ainyc/aeo-audit` is the published TypeScript audit engine and CLI at the root of this repository. Phase 1 also introduces a workspace skeleton for a future self-hosted monitoring platform. The root package remains the compatibility anchor.
 
 Website: https://ainyc.ai
 
-## Tech Stack
+## Workspace Map
 
-- **Language:** TypeScript (ESM)
-- **Runtime:** Node.js >= 20
-- **Package manager:** pnpm
-- **HTML parsing:** Cheerio
-- **Build:** TypeScript compiler to `dist/`
-- **Typecheck:** `tsc --noEmit`
-- **Test runner:** `tsx --test`
-- **Linter:** ESLint v9 flat config
+```text
+src/                  Root audit engine and CLI source
+dist/                 Published build output
+skills/aeo/           Claude Code / ClawHub skill asset
+apps/api/             Fastify platform API skeleton
+apps/worker/          Background worker skeleton
+apps/web/             Vite dashboard skeleton
+packages/contracts/   Shared DTOs and enums
+packages/config/      Typed environment parsing
+packages/db/          Database access and schema placeholder
+packages/provider-gemini/ Gemini adapter placeholder
+docs/                 Architecture, testing, self-hosting, ADRs
+```
+
+## Root Package Invariants
+
+- The repo root remains the published `@ainyc/aeo-audit` package.
+- Do not add `"private": true` to the root `package.json`.
+- Keep the root `files` allowlist limited to `dist/`, `bin/`, `skills/`, `README.md`, and `LICENSE`.
+- Do not make the root package depend on workspace packages in Phase 1.
+- Keep `runAeoAudit`, `bin/aeo-audit.js`, and current publish semantics stable unless a later change explicitly updates the public contract.
 
 ## Commands
 
 ```bash
-pnpm install    # Install dependencies
-pnpm run typecheck  # Static typecheck
-pnpm run build      # Compile src/*.ts to dist/
-pnpm test           # Run all tests
-pnpm lint           # Run linter
+pnpm install
+pnpm run typecheck
+pnpm run build
+pnpm run test
+pnpm run test:e2e
+pnpm run lint
+pnpm run pack:verify
+pnpm run skill:verify
+pnpm run typecheck:platform
+pnpm run lint:platform
+pnpm run docker:up
 ```
 
-## Key Files
+## Maintenance Guidance
 
-```
-src/
-  index.ts           # Main entry: runAeoAudit(url, options)
-  scoring.ts         # Factor definitions, weights, grade calculation
-  fetch-page.ts      # URL fetching with SSRF protection
-  errors.ts          # AeoAuditError class
-  cli.ts             # CLI argument parsing
-  formatters/        # json, markdown, text output formatters
-  analyzers/         # 14 analyzer modules (13 core + 1 optional)
-  types.ts           # Shared audit/report TypeScript types
-dist/                # Compiled publishable ESM output
-bin/
-  aeo-audit.js       # CLI entry point -> dist/cli.js
-skills/aeo/          # Single umbrella Claude Code / ClawHub skill
-test/                # Unit and integration tests
-```
+### Root package
 
-## Architecture
+- Preserve audit behavior unless a change intentionally updates scoring or report contracts.
+- Keep the CLI working from `node bin/aeo-audit.js` after `pnpm run build`.
+- Use `src/types.ts` as the root package type surface.
 
-- Each analyzer receives a context object `{ $, html, url, headers, auxiliary, structuredData, textContent, pageTitle }` and returns `{ score, findings, recommendations }`
-- Scores are weighted and normalized in `scoring.ts`; weights sum to 100% for active factors
-- Geographic signals is optional (excluded by default); when included, weights renormalize
-- The `--factors` flag allows running a subset of analyzers
-- SSRF protection blocks private IPs and hostnames in `fetch-page.ts`
-- Published entrypoints resolve to compiled `dist/` output; run `pnpm run build` before local CLI smoke tests
+### Platform packages
 
-## Code Conventions
+- Keep shared shapes in `packages/contracts` before duplicating types in API or worker code.
+- Keep configuration parsing in `packages/config`.
+- Keep provider-specific logic inside `packages/provider-gemini`.
+- Keep API handlers thin; put orchestration in services once Phase 2 starts.
 
-- Functional style, no classes except AeoAuditError
-- Always use `clampScore()` for score calculations
-- Findings types: `found`, `missing`, `info`, `timeout`, `unreachable`
-- Unused vars starting with `_` are ignored by ESLint
+### Docs and Compose
 
-## GitHub Actions Conventions
+- Update docs whenever workspace layout, packaging rules, or CI expectations change.
+- Keep `compose.yaml` aligned with the placeholder startup contract documented in `docs/self-hosting.md`.
 
-- **Single trigger path per release flow.** If the workflow auto-creates a tag, do not also trigger on that tag pattern — the self-pushed tag will re-fire the workflow, causing a duplicate publish that fails with 403 on npm.
-- **Never interpolate step outputs directly into `run:` blocks.** Use an `env:` block to pass values into shell scripts: `env: { VERSION: "${{ steps.x.outputs.version }}" }` then reference `$VERSION` in the script. Direct `${{ }}` interpolation in `run:` is a script-injection vector.
-- **Scope permissions to the minimum required per job.** If only one step needs `contents: write` (e.g., pushing a tag), prefer splitting it into a separate job with its own permissions block rather than elevating the entire job.
-- **Declare explicit `permissions` on every job.** Omitting the `permissions` block inherits the repository default, which may be `write-all`. Always declare at minimum `contents: read`.
+## Improvement Order
+
+1. Protect root package compatibility and publish behavior.
+2. Update shared contracts and docs.
+3. Expand backend services and worker logic.
+4. Extend the UI last.
+
+## Release and Packaging Checklist
+
+1. Run root package checks:
+   - `pnpm run typecheck`
+   - `pnpm run build`
+   - `pnpm run test`
+   - `pnpm run test:e2e`
+   - `pnpm run lint`
+2. Run packaging checks:
+   - `pnpm run pack:verify`
+   - `pnpm run skill:verify`
+3. Confirm the tarball does not include workspace-only code.
+4. Confirm the skill asset still ships in the tarball.
+
+## GitHub Actions Guidance
+
+- Keep a single publish trigger path on `main`; do not add tag triggers when tags are created by the workflow itself.
+- Pass step outputs into shell commands via `env:`, not direct interpolation inside `run:`.
+- Keep explicit job permissions.
+- Preserve the root-package CI job even as platform-specific jobs are added.

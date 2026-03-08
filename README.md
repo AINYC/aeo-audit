@@ -1,14 +1,32 @@
 # @ainyc/aeo-audit
 
-The most comprehensive open-source Answer Engine Optimization (AEO) audit tool. Scores any website across 13 ranking factors that determine whether AI answer engines — ChatGPT, Perplexity, Gemini, Claude — will cite your content.
+`@ainyc/aeo-audit` is an open-source AEO audit engine and CLI for evaluating whether a site is technically ready to be cited by answer engines such as ChatGPT, Gemini, Claude, and Perplexity. This repository now also contains the Phase 1 skeleton for a self-hosted monitoring platform built around the existing TypeScript package.
 
 Website: [ainyc.ai](https://ainyc.ai)
 
-## Quick Start
+## What Lives Here
+
+- The published root package and CLI for single-site audits
+- The Claude Code / ClawHub skill under `skills/aeo/SKILL.md`
+- Platform scaffolding for a future self-hosted monitoring product in `apps/*` and `packages/*`
+- Architecture, testing, self-hosting, and maintenance documentation in `docs/`
+
+## Current CLI Quick Start
 
 ```bash
 npx @ainyc/aeo-audit https://example.com
 ```
+
+Useful variants:
+
+```bash
+npx @ainyc/aeo-audit https://example.com --format json
+npx @ainyc/aeo-audit https://example.com --format markdown
+npx @ainyc/aeo-audit https://example.com --factors structured-data,faq-content
+npx @ainyc/aeo-audit https://example.com --include-geo
+```
+
+Exit code `0` means score `>= 70`; `1` means score `< 70`.
 
 ## Local Development
 
@@ -17,22 +35,116 @@ pnpm install
 pnpm run typecheck
 pnpm run build
 pnpm run test
+pnpm run test:e2e
 pnpm run lint
 
-# Smoke test the compiled CLI from this repo
+# Verify the published tarball shape and shipped skill
+pnpm run pack:verify
+pnpm run skill:verify
+
+# Smoke test the compiled CLI from this checkout
 node bin/aeo-audit.js https://example.com --format json
 ```
 
-The package source lives in `src/*.ts` and publishes compiled ESM plus declarations from `dist/`.
+The published package is built from `src/*.ts` into `dist/` and ships declaration files automatically.
 
-## Why AEO?
+## Self-Hosted Platform Quick Start
 
-AI answer engines are replacing traditional search for millions of queries. Getting cited by ChatGPT or Perplexity requires different signals than ranking in Google:
+Phase 1 only provides a platform skeleton, not a feature-complete product. You can still boot the placeholder stack locally:
 
-- **Structured data** (JSON-LD) with FAQPage schema shows 2.7x higher citation rates
-- **llms.txt** files help AI systems understand your site at a glance
-- **E-E-A-T signals** (author credentials, trust pages) determine citation trustworthiness
-- **Content extractability** — clean, well-structured content gets cited; paywalled content doesn't
+```bash
+cp .env.example .env
+pnpm install
+pnpm run docker:up
+```
+
+Expected endpoints:
+
+- Web placeholder: [http://localhost:4173](http://localhost:4173)
+- API health: [http://localhost:3000/health](http://localhost:3000/health)
+
+See [self-hosting guide](./docs/self-hosting.md) for details.
+
+## Architecture
+
+The long-term product keeps the existing audit package intact and adds an API, worker, Postgres, and a minimal web UI around it.
+
+```mermaid
+flowchart LR
+  User["Developer / Analyst"] --> Web["apps/web\nVite SPA"]
+  User --> CLI["Root CLI\nbin/aeo-audit.js"]
+  Web --> API["apps/api\nFastify API"]
+  API --> DB["Postgres"]
+  API --> Queue["pg-boss jobs"]
+  Queue --> Worker["apps/worker"]
+  Worker --> Gemini["packages/provider-gemini\nGemini API"]
+  Worker --> Core["Root package\n@ainyc/aeo-audit"]
+  CLI --> Core
+  Core --> Target["Audited websites"]
+  Worker --> DB
+  Skills["skills/aeo/SKILL.md"] --> Repo["Git repo checkout"]
+  Skills --> Npm["npm package tarball"]
+  Npm --> CLI
+```
+
+See [architecture](./docs/architecture.md) for the full design and run sequence.
+
+## Docs Index
+
+- [Product plan](./docs/product-plan.md)
+- [Architecture](./docs/architecture.md)
+- [Testing guide](./docs/testing.md)
+- [Self-hosting guide](./docs/self-hosting.md)
+- [Workspace packaging](./docs/workspace-packaging.md)
+- [Site audit design](./docs/site-audit.md)
+- [Gemini provider design](./docs/providers/gemini.md)
+- [ADR 0001: Root package workspace](./docs/adr/0001-root-package-workspace.md)
+- [ADR 0002: Separate score families](./docs/adr/0002-separate-score-families.md)
+- [ADR 0003: Provider throttling and quotas](./docs/adr/0003-provider-throttling-and-quotas.md)
+
+## Skill Distribution
+
+The repository ships one umbrella skill source at `skills/aeo/SKILL.md`. There is no separate skill publish workflow in Phase 1. Skill distribution remains operational through:
+
+- the npm tarball for `@ainyc/aeo-audit`
+- direct repository checkout and copy
+
+Examples:
+
+- `/aeo audit https://example.com`
+- `/aeo schema https://example.com`
+- `/aeo monitor https://site-a.com --compare https://site-b.com`
+
+Install locally:
+
+```bash
+git clone https://github.com/AINYC/aeo-audit.git /tmp/aeo-audit
+cp -r /tmp/aeo-audit/skills/aeo ~/.claude/skills/
+```
+
+When testing unpublished changes from this checkout, build first and use the local CLI:
+
+```bash
+pnpm run build
+node bin/aeo-audit.js https://example.com --format json
+```
+
+## Packaging Guarantees
+
+The root package remains the published artifact. CI verifies that `npm pack --dry-run` contains:
+
+- `dist/**`
+- `bin/aeo-audit.js`
+- `skills/aeo/SKILL.md`
+- `README.md`
+- `LICENSE`
+
+CI also verifies that workspace-only code does not leak into the tarball:
+
+- `apps/**`
+- `packages/**`
+- `docs/**`
+- `.github/**`
 
 ## 13 Scoring Factors
 
@@ -52,28 +164,7 @@ AI answer engines are replacing traditional search for millions of queries. Gett
 | Named Entities | 6% | Brand mentions, knowsAbout/founder signals, proper noun density |
 | AI Crawler Access | 4% | Per-bot robots.txt rules for GPTBot, ClaudeBot, PerplexityBot, etc. |
 
-**Optional:** Geographic Signals (7%) — LocalBusiness geo data, address, areaServed. Enable with `--include-geo`.
-
-## CLI Usage
-
-```bash
-# Colored terminal output (default)
-npx @ainyc/aeo-audit https://example.com
-
-# JSON output (for CI/CD)
-npx @ainyc/aeo-audit https://example.com --format json
-
-# Markdown report
-npx @ainyc/aeo-audit https://example.com --format markdown
-
-# Run specific factors only
-npx @ainyc/aeo-audit https://example.com --factors structured-data,faq-content
-
-# Include geographic signals
-npx @ainyc/aeo-audit https://example.com --include-geo
-```
-
-Exit code `0` for score >= 70, `1` for < 70 (CI-friendly).
+Optional: Geographic Signals (7%) via `--include-geo`.
 
 ## Programmatic Usage
 
@@ -81,73 +172,18 @@ Exit code `0` for score >= 70, `1` for < 70 (CI-friendly).
 import { runAeoAudit } from '@ainyc/aeo-audit'
 
 const report = await runAeoAudit('https://example.com', {
-  includeGeo: false,        // Include geographic signals (default: false)
-  factors: null,             // Run all factors (or pass array of factor IDs)
+  includeGeo: false,
+  factors: null,
 })
 
-console.log(report.overallGrade) // 'A+'
-console.log(report.overallScore) // 98
-console.log(report.factors)      // Array of factor results with scores, findings, recommendations
+console.log(report.overallGrade)
+console.log(report.overallScore)
+console.log(report.factors)
 ```
-
-TypeScript declaration files are included automatically.
-
-## Claude Code / ClawHub Skill
-
-This package now ships one umbrella skill source at `skills/aeo/SKILL.md`.
-
-Command: `/aeo`
-
-Modes:
-
-- `audit` for grading and diagnosis
-- `fix` for code changes after an audit
-- `schema` for JSON-LD validation
-- `llms` for `llms.txt` and `llms-full.txt`
-- `monitor` for before/after tracking or competitor comparisons
-
-Examples:
-
-- `/aeo audit https://example.com`
-- `/aeo fix https://example.com`
-- `/aeo schema https://example.com`
-- `/aeo llms https://example.com`
-- `/aeo monitor https://site-a.com --compare https://site-b.com`
-
-ClawHub package: [arberx/aeo](https://clawhub.ai/arberx/aeo)
-
-If you are testing the skill from this repository instead of the published package, build first and use the local CLI:
-
-```bash
-pnpm run build
-node bin/aeo-audit.js https://example.com --format json
-```
-
-### Install Skills
-
-```bash
-# Personal install
-git clone https://github.com/AINYC/aeo-audit.git /tmp/aeo-audit
-cp -r /tmp/aeo-audit/skills/aeo ~/.claude/skills/
-
-# Or project-level
-cp -r /tmp/aeo-audit/skills/aeo .claude/skills/
-```
-
-## Grading Scale
-
-| Grade | Score | Meaning |
-|-------|-------|---------|
-| A+ | 97-100 | Exceptional AEO readiness |
-| A / A- | 90-96 | Strong foundation |
-| B+/B/B- | 80-89 | Good with clear gaps |
-| C+/C/C- | 70-79 | Moderate, needs work |
-| D+/D/D- | 60-69 | Weak |
-| F | <60 | Critical |
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Start with [CONTRIBUTING.md](./CONTRIBUTING.md), then use the docs linked above for testing, architecture, and packaging rules.
 
 ## License
 

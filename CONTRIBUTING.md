@@ -11,14 +11,30 @@ pnpm run build
 pnpm test
 ```
 
+Start with the top-level [README.md](README.md), then use:
+
+- [docs/testing.md](docs/testing.md)
+- [docs/architecture.md](docs/architecture.md)
+- [docs/self-hosting.md](docs/self-hosting.md)
+- [docs/workspace-packaging.md](docs/workspace-packaging.md)
+
 ## Development
 
-- **Language:** TypeScript (ESM)
-- **Node version:** >= 20
-- **Build output:** `dist/`
-- **Typecheck:** `tsc --noEmit`
-- **Test runner:** `tsx --test`
-- **Linter:** ESLint v9 flat config
+- Language: TypeScript (ESM)
+- Node version: `>= 20`
+- Build output: `dist/`
+- Typecheck: `tsc --noEmit`
+- Test runner: `tsx --test`
+- Linter: ESLint v9 flat config
+- Workspace root: the repository root is also the published package
+
+## Publish and Workspace Rules
+
+- Do not mark the root package as private.
+- Keep the root `files` allowlist narrow.
+- Do not introduce workspace-only code into the npm tarball.
+- Preserve `skills/aeo/SKILL.md` in the published package.
+- Run `pnpm run pack:verify` and `pnpm run skill:verify` when touching packaging, README, or skill files.
 
 ## Adding a New Analyzer
 
@@ -44,6 +60,10 @@ pnpm test
 pnpm run typecheck
 pnpm run build
 pnpm test
+pnpm run test:e2e
+pnpm run lint
+pnpm run pack:verify
+pnpm run skill:verify
 ```
 
 ## Code Style
@@ -58,4 +78,5 @@ pnpm test
 - Include tests for new analyzers or bug fixes
 - Run `pnpm run build` if you change the CLI packaging or published entrypoints
 - Run `pnpm lint` before submitting
+- Run `pnpm run typecheck:platform` and `pnpm run lint:platform` when changing `apps/*` or `packages/*`
 - Keep PRs focused on a single change
