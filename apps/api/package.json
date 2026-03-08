@@ -1,0 +1,16 @@
+{
+  "name": "@ainyc/aeo-platform-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@ainyc/aeo-platform-config": "workspace:*",
+    "@ainyc/aeo-platform-contracts": "workspace:*",
+    "fastify": "^5.6.1"
+  }
+}
