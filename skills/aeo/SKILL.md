@@ -1,7 +1,6 @@
 ---
 name: aeo
 description: Run AEO audits, fix site issues, validate schema, generate llms.txt, and compare sites.
-license: MIT
 allowed-tools:
   - Bash(npx *)
   - Bash(aeo-audit *)
