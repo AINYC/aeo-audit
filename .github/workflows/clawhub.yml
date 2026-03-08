@@ -1,17 +1,19 @@
 name: Publish Skills to ClawHub
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
       - 'skills/**'
+      - 'package.json'
 
 jobs:
   publish-skills:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        skill: [aeo-audit, aeo-fix, aeo-llms-generate, aeo-monitor, aeo-schema-validate]
+        skill: [aeo]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,7 +21,9 @@ jobs:
       - name: Check if skill changed
         id: check
         run: |
-          if git diff --name-only HEAD~1 HEAD -- "skills/${{ matrix.skill }}/" | grep -q .; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only HEAD~1 HEAD -- "skills/${{ matrix.skill }}/" "package.json" | grep -q .; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
