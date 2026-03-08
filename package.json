@@ -36,10 +36,18 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
+    "typecheck:platform": "pnpm -r --filter \"@ainyc/aeo-platform-*\" run typecheck",
     "test": "tsx --test test/*.test.ts test/analyzers/*.test.ts",
     "pretest:e2e": "pnpm run build",
     "test:e2e": "tsx --test test/e2e/*.test.ts",
     "lint": "eslint src/ test/ bin/ eslint.config.js",
+    "lint:platform": "pnpm -r --filter \"@ainyc/aeo-platform-*\" run lint",
+    "pack:verify": "node scripts/verify-pack.mjs",
+    "skill:verify": "node scripts/verify-skill.mjs",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:reset": "docker compose down -v --remove-orphans",
     "prepublishOnly": "pnpm run typecheck && pnpm run build && pnpm run test && pnpm run test:e2e && pnpm run lint"
   },
   "dependencies": {

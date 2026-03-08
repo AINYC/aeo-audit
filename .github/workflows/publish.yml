@@ -46,6 +46,10 @@ jobs:
         if: steps.version.outputs.changed == 'true'
       - run: pnpm run test:e2e
         if: steps.version.outputs.changed == 'true'
+      - run: pnpm run pack:verify
+        if: steps.version.outputs.changed == 'true'
+      - run: pnpm run skill:verify
+        if: steps.version.outputs.changed == 'true'
       - run: npm publish --provenance --access public
         if: steps.version.outputs.changed == 'true'
         env:
