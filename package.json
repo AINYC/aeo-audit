@@ -36,9 +36,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test test/*.test.ts test/analyzers/**/*.test.ts",
+    "test": "tsx --test test/*.test.ts test/analyzers/*.test.ts",
     "pretest:e2e": "pnpm run build",
-    "test:e2e": "tsx --test test/e2e/**/*.test.ts",
+    "test:e2e": "tsx --test test/e2e/*.test.ts",
     "lint": "eslint src/ test/ bin/ eslint.config.js",
     "prepublishOnly": "pnpm run typecheck && pnpm run build && pnpm run test && pnpm run test:e2e && pnpm run lint"
   },
