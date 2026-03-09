@@ -23,6 +23,7 @@ Services:
 
 - Web: `http://localhost:4173`
 - API: `http://localhost:3000`
+- Worker: `http://localhost:3001`
 - Postgres: `localhost:5432`
 
 ## Environment Variables
@@ -34,6 +35,7 @@ Copy `.env.example` and adjust:
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `API_PORT`
+- `WORKER_PORT`
 - `WEB_PORT`
 - `BOOTSTRAP_SECRET`
 - `GEMINI_API_KEY`
@@ -46,6 +48,7 @@ Copy `.env.example` and adjust:
 - Postgres becomes healthy first
 - API, worker, and web each install workspace dependencies inside their own container-local `node_modules` volume
 - API exposes `/health`
+- Worker exposes `/health`
 - Worker emits heartbeat logs
 - Web renders the platform skeleton page
 

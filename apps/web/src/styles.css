@@ -62,3 +62,19 @@ ul {
 a {
   color: #f5d596;
 }
+
+.status {
+  margin-top: 6px;
+}
+
+.status-checking {
+  color: #f5d596;
+}
+
+.status-ok {
+  color: #9fd7a7;
+}
+
+.status-error {
+  color: #ff9a8a;
+}

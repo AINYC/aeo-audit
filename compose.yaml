@@ -48,13 +48,21 @@ services:
     environment:
       CI: "true"
       DATABASE_URL: ${DATABASE_URL}
+      WORKER_PORT: ${WORKER_PORT:-3001}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MAX_CONCURRENCY: ${GEMINI_MAX_CONCURRENCY:-2}
       GEMINI_MAX_REQUESTS_PER_MINUTE: ${GEMINI_MAX_REQUESTS_PER_MINUTE:-10}
       GEMINI_MAX_REQUESTS_PER_DAY: ${GEMINI_MAX_REQUESTS_PER_DAY:-1000}
+    ports:
+      - "${WORKER_PORT:-3001}:3001"
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
 
   web:
     image: node:22-alpine
@@ -65,11 +73,14 @@ services:
       - web-node-modules:/workspace/node_modules
     environment:
       CI: "true"
-      VITE_API_BASE_URL: http://localhost:${API_PORT:-3000}
+      API_INTERNAL_BASE_URL: http://api:3000
+      WORKER_INTERNAL_BASE_URL: http://worker:3001
     ports:
       - "${WEB_PORT:-4173}:4173"
     depends_on:
       api:
+        condition: service_healthy
+      worker:
         condition: service_healthy
 
 volumes:

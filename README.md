@@ -69,6 +69,7 @@ Expected endpoints:
 
 - Web placeholder: [http://localhost:4173](http://localhost:4173)
 - API health: [http://localhost:3000/health](http://localhost:3000/health)
+- Worker health: [http://localhost:3001/health](http://localhost:3001/health)
 
 See [self-hosting guide](./docs/self-hosting.md) for details.
 
