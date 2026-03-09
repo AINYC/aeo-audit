@@ -14,7 +14,7 @@ interface WorkerHealthResponse {
 export function startHealthServer(
   env: PlatformEnv,
   getLastHeartbeatAt: () => string,
-): { close: () => void } {
+): { ready: Promise<void>; close: () => Promise<void> } {
   const server = createServer((request, response) => {
     if (request.url !== '/health') {
       response.writeHead(404)
@@ -37,11 +37,26 @@ export function startHealthServer(
     response.end(JSON.stringify(payload))
   })
 
-  server.listen(env.workerPort, '0.0.0.0', () => {
-    console.info(`[worker] health server listening on ${env.workerPort}`)
+  const ready = new Promise<void>((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(env.workerPort, '0.0.0.0', () => {
+      console.info(`[worker] health server listening on ${env.workerPort}`)
+      server.off('error', reject)
+      resolve()
+    })
   })
 
   return {
-    close: () => server.close(),
+    ready,
+    close: () => new Promise((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error)
+          return
+        }
+
+        resolve()
+      })
+    }),
   }
 }

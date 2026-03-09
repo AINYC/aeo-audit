@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint src/"
+    "test": "tsx --test test/*.test.ts",
+    "lint": "eslint src/ test/"
   },
   "dependencies": {
     "@ainyc/aeo-platform-config": "workspace:*",

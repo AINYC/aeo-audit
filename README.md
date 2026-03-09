@@ -39,6 +39,7 @@ pnpm run build
 pnpm run test
 pnpm run test:e2e
 pnpm run lint
+pnpm run test:platform
 
 # Verify the published tarball shape and shipped skill
 pnpm run pack:verify

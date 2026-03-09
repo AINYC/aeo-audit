@@ -18,6 +18,7 @@ pnpm run skill:verify
 
 ```bash
 pnpm run typecheck:platform
+pnpm run test:platform
 pnpm run lint:platform
 ```
 
@@ -35,6 +36,7 @@ pnpm run lint:platform
   - `skill:verify`
 - `ci.yml` platform-skeleton job:
   - `typecheck:platform`
+  - `test:platform`
   - `lint:platform`
 - `publish.yml`:
   - version bump detection

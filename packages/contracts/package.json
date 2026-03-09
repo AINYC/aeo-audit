@@ -12,7 +12,8 @@
   "types": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint src/"
+    "test": "tsx --test test/*.test.ts",
+    "lint": "eslint src/ test/"
   },
   "dependencies": {
     "zod": "^4.1.12"

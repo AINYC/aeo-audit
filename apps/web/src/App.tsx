@@ -8,13 +8,13 @@ const docs = [
 
 type StatusState = 'checking' | 'ok' | 'error'
 
-interface ServiceStatus {
+export interface ServiceStatus {
   label: string
   state: StatusState
   detail: string
 }
 
-async function fetchServiceStatus(url: string, label: string): Promise<ServiceStatus> {
+export async function fetchServiceStatus(url: string, label: string): Promise<ServiceStatus> {
   try {
     const response = await fetch(url)
 

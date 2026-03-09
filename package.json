@@ -37,6 +37,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "typecheck:platform": "pnpm -r --filter \"@ainyc/aeo-platform-*\" run typecheck",
+    "test:platform": "pnpm -r --filter \"@ainyc/aeo-platform-*\" run test",
     "test": "tsx --test test/*.test.ts test/analyzers/*.test.ts",
     "pretest:e2e": "pnpm run build",
     "test:e2e": "tsx --test test/e2e/*.test.ts",

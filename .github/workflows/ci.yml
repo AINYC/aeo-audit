@@ -63,4 +63,5 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck:platform
+      - run: pnpm run test:platform
       - run: pnpm run lint:platform

@@ -7,15 +7,20 @@ const env = getPlatformEnv(process.env)
 let lastHeartbeatAt = new Date().toISOString()
 
 const healthServer = startHealthServer(env, () => lastHeartbeatAt)
+void healthServer.ready
 const stop = startHeartbeatJobs(env, () => {
   lastHeartbeatAt = new Date().toISOString()
 })
 
-const shutdown = () => {
-  healthServer.close()
+const shutdown = async () => {
+  await healthServer.close()
   stop()
   process.exit(0)
 }
 
-process.on('SIGINT', shutdown)
-process.on('SIGTERM', shutdown)
+process.on('SIGINT', () => {
+  void shutdown()
+})
+process.on('SIGTERM', () => {
+  void shutdown()
+})
