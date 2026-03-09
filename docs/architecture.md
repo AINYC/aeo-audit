@@ -4,7 +4,7 @@
 
 The repository is structured so the current published package remains stable at the repo root while the platform grows around it. The root package continues to own fetch, analyzers, scoring, formatters, the CLI, and the skill asset. New platform services are added under `apps/*` and `packages/*`.
 
-For a Profound-like product shape, the monitoring app is the primary system. The audit CLI is not part of the main monitoring UX; it is supporting tooling for developers, CI, and one-off technical diagnosis.
+The monitoring app is the primary system. The audit CLI is not part of the main monitoring UX; it is supporting tooling for developers, CI, and one-off technical diagnosis.
 
 ## Component Diagram
 
@@ -53,7 +53,7 @@ The monitoring app should deliver the main user experience. The CLI exists for f
 - local development and regression testing of the shared audit engine
 - preserving the existing OSS package and skill distribution that already have value on their own
 
-If the product goal is a basic Profound-like experience, the platform path is `web -> api -> worker -> provider -> postgres`. The CLI is adjacent to that flow, not in the center of it.
+The primary platform path is `web -> api -> worker -> provider -> postgres`. The CLI is adjacent to that flow, not in the center of it.
 
 ## Run Flow
 
