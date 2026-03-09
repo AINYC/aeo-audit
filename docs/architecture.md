@@ -4,25 +4,56 @@
 
 The repository is structured so the current published package remains stable at the repo root while the platform grows around it. The root package continues to own fetch, analyzers, scoring, formatters, the CLI, and the skill asset. New platform services are added under `apps/*` and `packages/*`.
 
+For a Profound-like product shape, the monitoring app is the primary system. The audit CLI is not part of the main monitoring UX; it is supporting tooling for developers, CI, and one-off technical diagnosis.
+
 ## Component Diagram
 
 ```mermaid
 flowchart LR
-  User["Developer / Analyst"] --> Web["apps/web\nVite SPA"]
-  User --> CLI["Root CLI\nbin/aeo-audit.js"]
-  Web --> API["apps/api\nFastify API"]
-  API --> DB["Postgres"]
-  API --> Queue["pg-boss jobs"]
-  Queue --> Worker["apps/worker"]
-  Worker --> Gemini["packages/provider-gemini\nGemini API"]
-  Worker --> Core["Root package\n@ainyc/aeo-audit"]
-  CLI --> Core
-  Core --> Target["Audited websites"]
-  Worker --> DB
-  Skills["skills/aeo/SKILL.md"] --> Repo["Git repo checkout"]
-  Skills --> Npm["npm package tarball"]
-  Npm --> CLI
+  User["Developer / Analyst"]
+  Target["Audited websites"]
+  DB["Postgres"]
+  Gemini["packages/provider-gemini\nGemini API"]
+  Core["Shared audit engine\n@ainyc/aeo-audit library"]
+
+  subgraph Platform["Monitoring platform (primary product)"]
+    direction LR
+    Web["apps/web\nVite SPA"] --> API["apps/api\nFastify API"]
+    API --> Queue["pg-boss jobs"]
+    API --> DB
+    Queue --> Worker["apps/worker"]
+    Worker --> Gemini
+    Worker --> Core
+    Worker --> DB
+  end
+
+  subgraph Toolkit["Supporting developer / CI toolkit"]
+    direction TB
+    CLI["Audit CLI\nbin/aeo-audit.js"]
+    Skills["skills/aeo/SKILL.md"]
+    Repo["Git repo checkout"]
+    Npm["npm package tarball"]
+    Skills --> Repo
+    Skills --> Npm
+    Npm --> CLI
+    CLI --> Core
+  end
+
+  User --> Web
+  User -. one-off audits / CI .-> CLI
+  Core --> Target
 ```
+
+## Why the CLI Still Exists
+
+The monitoring app should deliver the main user experience. The CLI exists for four narrower reasons:
+
+- one-off technical audits while debugging why a domain is or is not being cited
+- CI and release checks for technical readiness outside the hosted UI
+- local development and regression testing of the shared audit engine
+- preserving the existing OSS package and skill distribution that already have value on their own
+
+If the product goal is a basic Profound-like experience, the platform path is `web -> api -> worker -> provider -> postgres`. The CLI is adjacent to that flow, not in the center of it.
 
 ## Run Flow
 
@@ -58,7 +89,7 @@ sequenceDiagram
 
 ## Service Boundaries
 
-- Root package: technical audit engine, CLI, formatters, TypeScript report types
+- Root package: shared technical audit engine, CLI, formatters, TypeScript report types
 - API: HTTP surface, validation, orchestration, read APIs
 - Worker: jobs, provider execution, retries, future site audits
 - Web: dashboard and bootstrap/setup UX

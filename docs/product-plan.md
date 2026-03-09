@@ -19,6 +19,7 @@ Build on top of `@ainyc/aeo-audit` to create the most comprehensive open-source,
 - Gemini is the first provider
 - Technical readiness and answer visibility remain separate score families
 - Manual keyword import and manual competitor setup in the first product release
+- The monitoring app is the primary product surface; the audit CLI remains a supporting developer and CI tool, not the main user workflow
 
 ## Planned Phases
 

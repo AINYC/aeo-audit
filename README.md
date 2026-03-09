@@ -80,20 +80,38 @@ The long-term product keeps the existing audit package intact and adds an API, w
 
 ```mermaid
 flowchart LR
-  User["Developer / Analyst"] --> Web["apps/web\nVite SPA"]
-  User --> CLI["Root CLI\nbin/aeo-audit.js"]
-  Web --> API["apps/api\nFastify API"]
-  API --> DB["Postgres"]
-  API --> Queue["pg-boss jobs"]
-  Queue --> Worker["apps/worker"]
-  Worker --> Gemini["packages/provider-gemini\nGemini API"]
-  Worker --> Core["Root package\n@ainyc/aeo-audit"]
-  CLI --> Core
-  Core --> Target["Audited websites"]
-  Worker --> DB
-  Skills["skills/aeo/SKILL.md"] --> Repo["Git repo checkout"]
-  Skills --> Npm["npm package tarball"]
-  Npm --> CLI
+  User["Developer / Analyst"]
+  Target["Audited websites"]
+  DB["Postgres"]
+  Gemini["packages/provider-gemini\nGemini API"]
+  Core["Shared audit engine\n@ainyc/aeo-audit library"]
+
+  subgraph Platform["Monitoring platform (primary product)"]
+    direction LR
+    Web["apps/web\nVite SPA"] --> API["apps/api\nFastify API"]
+    API --> Queue["pg-boss jobs"]
+    API --> DB
+    Queue --> Worker["apps/worker"]
+    Worker --> Gemini
+    Worker --> Core
+    Worker --> DB
+  end
+
+  subgraph Toolkit["Supporting developer / CI toolkit"]
+    direction TB
+    CLI["Audit CLI\nbin/aeo-audit.js"]
+    Skills["skills/aeo/SKILL.md"]
+    Repo["Git repo checkout"]
+    Npm["npm package tarball"]
+    Skills --> Repo
+    Skills --> Npm
+    Npm --> CLI
+    CLI --> Core
+  end
+
+  User --> Web
+  User -. one-off audits / CI .-> CLI
+  Core --> Target
 ```
 
 See [architecture](./docs/architecture.md) for the full design and run sequence.
