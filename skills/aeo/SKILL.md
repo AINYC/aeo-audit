@@ -8,8 +8,13 @@ allowed-tools:
   - Bash(pnpm run build)
   - Bash(node bin/aeo-audit.js *)
   - Read
-  - Edit
-  - Write
+  - Edit(*.html)
+  - Edit(*.json)
+  - Edit(*.md)
+  - Edit(*.txt)
+  - Edit(*.xml)
+  - Write(llms.txt)
+  - Write(llms-full.txt)
   - Glob
   - Grep
 ---
@@ -24,6 +29,14 @@ One skill for audit, fixes, schema, llms.txt, and monitoring workflows.
 
 - Use `npx @ainyc/aeo-audit@latest ...` when auditing a deployed site with the published package.
 - If working inside this repository to verify unpublished changes, run `pnpm run build` first and use `node bin/aeo-audit.js ...`.
+
+## Argument Safety
+
+**Never interpolate user input directly into shell commands.** Always:
+1. Validate that URLs match `https://` or `http://` and contain no shell metacharacters.
+2. Quote every argument individually (e.g., `npx @ainyc/aeo-audit@latest "https://example.com" --format json`).
+3. Pass flags as separate, literal tokens — never construct command strings from raw user text.
+4. Reject arguments containing characters like `;`, `|`, `&`, `$`, `` ` ``, `(`, `)`, `{`, `}`, `<`, `>`, or newlines.
 
 ## Modes
 
@@ -54,11 +67,11 @@ Use for broad requests such as "audit this site" or "why am I not being cited?"
 
 1. Run:
    ```bash
-   npx @ainyc/aeo-audit@latest $ARGUMENTS --format json
+   npx @ainyc/aeo-audit@latest "<url>" [flags] --format json
    ```
    Local repo alternative:
    ```bash
-   node bin/aeo-audit.js $ARGUMENTS --format json
+   node bin/aeo-audit.js "<url>" [flags] --format json
    ```
 2. Return:
    - Overall grade and score
@@ -74,11 +87,11 @@ Use when the user wants code changes applied after the audit.
 
 1. Run:
    ```bash
-   npx @ainyc/aeo-audit@latest $ARGUMENTS --format json
+   npx @ainyc/aeo-audit@latest "<url>" [flags] --format json
    ```
    Local repo alternative:
    ```bash
-   node bin/aeo-audit.js $ARGUMENTS --format json
+   node bin/aeo-audit.js "<url>" [flags] --format json
    ```
 2. Find factors with status `partial` or `fail`.
 3. Apply targeted fixes in the current codebase.
@@ -102,11 +115,11 @@ Use when the request is specifically about JSON-LD or schema quality.
 
 1. Run:
    ```bash
-   npx @ainyc/aeo-audit@latest $ARGUMENTS --format json --factors structured-data,schema-completeness,entity-consistency
+   npx @ainyc/aeo-audit@latest "<url>" [flags] --format json --factors structured-data,schema-completeness,entity-consistency
    ```
    Local repo alternative:
    ```bash
-   node bin/aeo-audit.js $ARGUMENTS --format json --factors structured-data,schema-completeness,entity-consistency
+   node bin/aeo-audit.js "<url>" [flags] --format json --factors structured-data,schema-completeness,entity-consistency
    ```
 2. Report:
    - Schema types found
@@ -128,11 +141,11 @@ Use when the user wants `llms.txt` or `llms-full.txt` created or improved.
 If a URL is provided:
 1. Run:
    ```bash
-   npx @ainyc/aeo-audit@latest $ARGUMENTS --format json --factors ai-readable-content
+   npx @ainyc/aeo-audit@latest "<url>" [flags] --format json --factors ai-readable-content
    ```
    Local repo alternative:
    ```bash
-   node bin/aeo-audit.js $ARGUMENTS --format json --factors ai-readable-content
+   node bin/aeo-audit.js "<url>" [flags] --format json --factors ai-readable-content
    ```
 2. Inspect existing AI-readable files if present.
 3. Extract key content from the site.
