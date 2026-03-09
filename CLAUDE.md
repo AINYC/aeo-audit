@@ -62,6 +62,16 @@ test/                # Unit and integration tests
 - Findings types: `found`, `missing`, `info`, `timeout`, `unreachable`
 - Unused vars starting with `_` are ignored by ESLint
 
+## ClawHub Publishing
+
+Publish the skill to ClawHub after updating `skills/aeo/SKILL.md`:
+
+```bash
+clawhub publish skills/aeo --version <semver> --changelog "<description of changes>"
+```
+
+The `--version` flag must be valid semver and should match `package.json`. Include a short changelog summarizing what changed.
+
 ## GitHub Actions Conventions
 
 - **Single trigger path per release flow.** If the workflow auto-creates a tag, do not also trigger on that tag pattern — the self-pushed tag will re-fire the workflow, causing a duplicate publish that fails with 403 on npm.
