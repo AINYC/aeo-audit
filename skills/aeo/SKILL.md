@@ -2,11 +2,11 @@
 name: aeo
 description: Run AEO audits, fix site issues, validate schema, generate llms.txt, and compare sites.
 allowed-tools:
-  - Bash(npx *)
+  - Bash(npx @ainyc/aeo-audit@latest *)
+  - Bash(npx @ainyc/aeo-audit *)
   - Bash(aeo-audit *)
   - Bash(pnpm run build)
   - Bash(node bin/aeo-audit.js *)
-  - Bash(curl *)
   - Read
   - Edit
   - Write
@@ -168,6 +168,6 @@ Comparison mode:
 - If the task needs a deployed site and no URL is provided, ask for the URL.
 - If the task is diagnosis only, do not edit files.
 - If the task is a fix request, make edits and verify with a rerun when possible.
-- If `npx` fails, suggest `npm install -g @ainyc/aeo-audit`.
+- If `npx` fails, suggest running `pnpm run build && node bin/aeo-audit.js` as a local alternative.
 - If the URL is unreachable or not HTML, report the exact failure.
 - Prefer concise, evidence-based recommendations over generic SEO advice.
