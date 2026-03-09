@@ -30,6 +30,8 @@ Exit code `0` means score `>= 70`; `1` means score `< 70`.
 
 ## Local Development
 
+For root package and CLI development:
+
 ```bash
 pnpm install
 pnpm run typecheck
@@ -54,9 +56,14 @@ Phase 1 only provides a platform skeleton, not a feature-complete product. You c
 
 ```bash
 cp .env.example .env
-pnpm install
 pnpm run docker:up
 ```
+
+Notes:
+
+- You do not need a local `pnpm install` first for the Docker path.
+- Compose uses container-local `node_modules` volumes so it does not try to reuse or purge your host `node_modules`.
+- The first boot will spend some time installing workspace dependencies inside the containers.
 
 Expected endpoints:
 

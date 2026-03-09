@@ -14,9 +14,10 @@ Phase 1 ships a placeholder local stack so the API, worker, web app, and Postgre
 
 ```bash
 cp .env.example .env
-pnpm install
 pnpm run docker:up
 ```
+
+If you only want the Dockerized platform skeleton, a local `pnpm install` is not required first.
 
 Services:
 
@@ -43,9 +44,31 @@ Copy `.env.example` and adjust:
 ## First-Run Expectations
 
 - Postgres becomes healthy first
+- API, worker, and web each install workspace dependencies inside their own container-local `node_modules` volume
 - API exposes `/health`
 - Worker emits heartbeat logs
 - Web renders the platform skeleton page
+
+## Troubleshooting
+
+### `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`
+
+The Compose setup should avoid this by:
+
+- setting `CI=true` in the app containers
+- using a separate `node_modules` volume per service
+- forcing non-interactive module purge behavior for `pnpm install`
+
+If you still hit it after pulling the latest branch, recreate the stack and volumes:
+
+```bash
+pnpm run docker:reset
+pnpm run docker:up
+```
+
+### Postgres `locale: not found`
+
+This warning comes from the Alpine-based Postgres image during init and does not block the Phase 1 local stack.
 
 ## Helpful Commands
 
