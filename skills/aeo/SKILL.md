@@ -51,6 +51,9 @@ If no mode is provided, default to `audit`.
 ## Examples
 
 - `audit https://example.com`
+- `audit https://example.com --sitemap`
+- `audit https://example.com --sitemap --limit 10`
+- `audit https://example.com --sitemap --top-issues`
 - `fix https://example.com`
 - `schema https://example.com`
 - `llms https://example.com`
@@ -80,6 +83,28 @@ Use for broad requests such as "audit this site" or "why am I not being cited?"
    - Top strengths
    - Top fixes
    - Metadata such as fetch time and auxiliary file availability
+
+### Sitemap Mode
+
+Use `--sitemap` to audit all pages discovered from the site's sitemap:
+
+```bash
+npx @ainyc/aeo-audit@latest "<url>" --sitemap --format json
+npx @ainyc/aeo-audit@latest "<url>" --sitemap https://example.com/sitemap.xml --format json
+npx @ainyc/aeo-audit@latest "<url>" --sitemap --limit 10 --format json
+npx @ainyc/aeo-audit@latest "<url>" --sitemap --top-issues --format json
+```
+
+Flags:
+- `--sitemap [url]` — auto-discover `/sitemap.xml` or provide an explicit URL
+- `--limit <n>` — cap pages audited (sorted by sitemap priority)
+- `--top-issues` — skip per-page output, show only cross-cutting patterns
+
+Returns:
+- Per-page scores and grades
+- Cross-cutting issues (factors failing across multiple pages)
+- Aggregate score and grade
+- Prioritized fixes ranked by site-wide impact
 
 ## Fix
 
