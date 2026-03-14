@@ -72,6 +72,16 @@ clawhub publish skills/aeo --version <semver> --changelog "<description of chang
 
 The `--version` flag must be valid semver and should match `package.json`. Include a short changelog summarizing what changed.
 
+### ClawHub Security Guidelines
+
+ClawHub flags skills as suspicious when they request excessive capabilities. Follow these rules to stay under the threshold:
+
+- **Pin npx versions** — use `@1` (major pin) instead of `@latest`. The `@latest` tag is a supply chain risk because a compromised publish can hijack all users immediately.
+- **Minimize Bash patterns** — only declare the single npx command end users need. Do not include local dev commands (`pnpm run build`, `node bin/...`) in the published skill; those are for contributors, not consumers.
+- **Avoid generic Bash patterns** — `Bash(aeo-audit *)` is too broad and could match other binaries. Always use the fully qualified `npx @ainyc/aeo-audit@1 *` form.
+- **Scope file permissions narrowly** — only request Edit/Write for file types the skill actually modifies. Use `Write(filename)` for specific files (e.g., `llms.txt`, `robots.txt`) instead of broad `Edit(*.txt)` patterns.
+- **Keep shell injection guards** — the Argument Safety section in SKILL.md is required. Never remove it.
+
 ## GitHub Actions Conventions
 
 - **Single trigger path per release flow.** If the workflow auto-creates a tag, do not also trigger on that tag pattern — the self-pushed tag will re-fire the workflow, causing a duplicate publish that fails with 403 on npm.
