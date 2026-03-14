@@ -6,7 +6,7 @@ const YELLOW = '\x1b[33m'
 const RED = '\x1b[31m'
 const CYAN = '\x1b[36m'
 
-import type { AuditReport, ScoredFactor } from '../types.js'
+import type { AuditReport, ScoredFactor, SitemapAuditReport } from '../types.js'
 
 function gradeColor(grade: string): string {
   if (grade.startsWith('A')) return GREEN
@@ -69,6 +69,65 @@ export function formatText(report: AuditReport): string {
   }
 
   lines.push(`${DIM}Fetched in ${report.metadata.fetchTimeMs}ms | ${report.metadata.wordCount} words | ${report.auditedAt}${RESET}`)
+
+  return lines.join('\n')
+}
+
+export function formatSitemapText(report: SitemapAuditReport, topIssuesOnly = false): string {
+  const lines = []
+
+  const gc = gradeColor(report.aggregateGrade)
+  lines.push(``)
+  lines.push(`${BOLD}AEO Sitemap Audit Report${RESET}`)
+  lines.push(`${DIM}${report.sitemapUrl}${RESET}`)
+  lines.push(``)
+  lines.push(`  ${BOLD}Aggregate Grade:${RESET} ${gc}${BOLD}${report.aggregateGrade}${RESET}  ${bar(report.aggregateScore, 30)} ${report.aggregateScore}/100`)
+  lines.push(`  ${DIM}${report.pagesAudited} pages audited, ${report.pagesSkipped} skipped, ${report.pagesDiscovered} discovered${RESET}`)
+  lines.push(``)
+
+  if (!topIssuesOnly) {
+    lines.push(`${BOLD}Per-Page Scores${RESET}`)
+    lines.push(`${'─'.repeat(70)}`)
+
+    const sorted = [...report.pages].sort((a, b) => b.overallScore - a.overallScore)
+    for (const page of sorted) {
+      if (page.status === 'error') {
+        const url = page.url.length > 50 ? page.url.slice(0, 47) + '...' : page.url
+        lines.push(`  ${RED}✗${RESET} ${url.padEnd(50)} ${RED}error${RESET}`)
+      } else {
+        const url = page.url.length > 50 ? page.url.slice(0, 47) + '...' : page.url
+        const pgc = gradeColor(page.overallGrade)
+        lines.push(`  ${statusIcon(page.overallScore >= 70 ? 'pass' : page.overallScore >= 40 ? 'partial' : 'fail')} ${url.padEnd(50)} ${bar(page.overallScore, 15)} ${pgc}${page.overallGrade.padEnd(3)}${RESET}`)
+      }
+    }
+
+    lines.push(`${'─'.repeat(70)}`)
+    lines.push(``)
+  }
+
+  if (report.crossCuttingIssues.length > 0) {
+    lines.push(`${BOLD}Cross-Cutting Issues${RESET}`)
+    lines.push(`${'─'.repeat(70)}`)
+
+    for (const issue of report.crossCuttingIssues) {
+      const pct = Math.round((issue.affectedPages / issue.totalPages) * 100)
+      const igc = gradeColor(issue.avgGrade)
+      lines.push(`  ${igc}${issue.avgGrade.padEnd(3)}${RESET} ${issue.factorName.padEnd(32)} ${DIM}avg ${issue.avgScore}/100, affects ${pct}% of pages${RESET}`)
+    }
+
+    lines.push(`${'─'.repeat(70)}`)
+    lines.push(``)
+  }
+
+  if (report.prioritizedFixes.length > 0) {
+    lines.push(`${BOLD}Prioritized Fixes (by site-wide impact)${RESET}`)
+    for (let i = 0; i < report.prioritizedFixes.length; i++) {
+      lines.push(`  ${CYAN}${i + 1}.${RESET} ${report.prioritizedFixes[i]}`)
+    }
+    lines.push(``)
+  }
+
+  lines.push(`${DIM}${report.auditedAt}${RESET}`)
 
   return lines.join('\n')
 }

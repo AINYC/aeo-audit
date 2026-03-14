@@ -19,6 +19,9 @@ import { getVisibleText, parseJsonLdScripts, countWords } from './analyzers/help
 import { FACTOR_DEFINITIONS, OPTIONAL_FACTOR_DEFINITIONS, scoreFactors } from './scoring.js'
 import type { Analyzer, AuditContext, AuditReport, RunAeoAuditOptions, ScoredFactor } from './types.js'
 
+export { runSitemapAudit } from './sitemap.js'
+export type { SitemapAuditReport, SitemapAuditOptions } from './types.js'
+
 const ANALYZER_BY_ID: Record<string, Analyzer> = {
   'structured-data': analyzeStructuredData,
   'ai-readable-content': analyzeAiReadableContent,

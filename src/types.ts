@@ -138,3 +138,44 @@ export interface FetchedPage {
 }
 
 export type Analyzer = (context: AuditContext) => AnalysisResult | Promise<AnalysisResult>
+
+/* ── Sitemap audit types ── */
+
+export interface SitemapPageResult {
+  url: string
+  overallScore: number
+  overallGrade: string
+  status: 'success' | 'error'
+  error?: string
+  factors?: ScoredFactor[]
+  metadata?: AuditMetadata
+}
+
+export interface CrossCuttingIssue {
+  factorId: string
+  factorName: string
+  avgScore: number
+  avgGrade: string
+  affectedPages: number
+  totalPages: number
+  topRecommendations: string[]
+}
+
+export interface SitemapAuditReport {
+  sitemapUrl: string
+  auditedAt: string
+  pagesDiscovered: number
+  pagesAudited: number
+  pagesSkipped: number
+  aggregateScore: number
+  aggregateGrade: string
+  pages: SitemapPageResult[]
+  crossCuttingIssues: CrossCuttingIssue[]
+  prioritizedFixes: string[]
+}
+
+export interface SitemapAuditOptions extends RunAeoAuditOptions {
+  sitemapUrl?: string
+  limit?: number
+  topIssuesOnly?: boolean
+}
