@@ -1,16 +1,16 @@
 ---
 name: aeo
 description: Run AEO audits, fix site issues, validate schema, generate llms.txt, and compare sites.
+homepage: https://ainyc.ai
+repository: https://github.com/AINYC/aeo-audit
 allowed-tools:
   - Bash(npx @ainyc/aeo-audit@1 *)
   - Read
-  - Edit(*.html)
-  - Edit(*.json)
+  - Glob
+  - Grep
   - Write(llms.txt)
   - Write(llms-full.txt)
   - Write(robots.txt)
-  - Glob
-  - Grep
 ---
 
 # AEO
@@ -119,6 +119,7 @@ Use when the user wants code changes applied after the audit.
 5. Re-run the audit and report the score delta.
 
 Rules:
+- Always explain proposed changes and get user confirmation before editing files.
 - Do not remove existing schema or content unless the user asks.
 - Preserve existing code style and patterns.
 - If a fix is ambiguous or high-risk, explain the tradeoff before editing.
