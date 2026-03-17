@@ -182,7 +182,7 @@ test('compiled CLI returns the expected JSON report for the fixture site', async
       { id: 'faq-content', score: 82, grade: 'B-', status: 'pass' },
       { id: 'citations', score: 66, grade: 'D', status: 'partial' },
       { id: 'schema-completeness', score: 45, grade: 'F', status: 'partial' },
-      { id: 'entity-consistency', score: 84, grade: 'B', status: 'pass' },
+      { id: 'entity-consistency', score: 94, grade: 'A', status: 'pass' },
       { id: 'content-freshness', score: 82, grade: 'B-', status: 'pass' },
       { id: 'content-extractability', score: 48, grade: 'F', status: 'partial' },
       { id: 'definition-blocks', score: 100, grade: 'A+', status: 'pass' },
