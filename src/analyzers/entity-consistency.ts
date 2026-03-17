@@ -72,6 +72,16 @@ export function analyzeEntityConsistency(context: AuditContext): AnalysisResult 
     recommendations.push('Standardize brand/entity naming in HTML metadata and JSON-LD.')
   }
 
+  // Title length check — titles over 70 characters get truncated in search and AI citations
+  const rawTitle = (context.pageTitle || '').trim()
+  if (rawTitle.length > 0 && rawTitle.length <= 70) {
+    score += 10
+    findings.push({ type: 'found', message: `Page title is ${rawTitle.length} characters (within 70-char limit).` })
+  } else if (rawTitle.length > 70) {
+    findings.push({ type: 'info', message: `Page title is ${rawTitle.length} characters (exceeds 70-char limit).` })
+    recommendations.push('Shorten the page title to 70 characters or fewer to avoid truncation in AI citations.')
+  }
+
   const canonicalHref = context.$('link[rel="canonical"]').attr('href')
   if (canonicalHref) {
     score += 20
