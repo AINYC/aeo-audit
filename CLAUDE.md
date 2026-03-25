@@ -74,13 +74,31 @@ The ClawHub skill version must match `package.json`.
 
 ## ClawHub Publishing
 
-Publish the skill to ClawHub after updating `skills/aeo/SKILL.md`:
+Publish the skill to ClawHub after updating `skills/aeo/SKILL.md`.
+
+### Verify login
+
+```bash
+clawhub whoami   # should print your handle (e.g. arberx)
+```
+
+If not logged in: `clawhub login`
+
+### Publish
 
 ```bash
 clawhub publish skills/aeo --version <semver> --changelog "<description of changes>"
 ```
 
-The `--version` flag must be valid semver and should match `package.json`. Include a short changelog summarizing what changed.
+- `--version` must be valid semver and **must match `package.json`**
+- Include a short changelog summarizing what changed
+- Run from the repo root (the `skills/` directory is resolved relative to cwd)
+
+### Example
+
+```bash
+clawhub publish skills/aeo --version 1.3.3 --changelog "Fix nested schema detection and E-E-A-T signal scoping"
+```
 
 ### ClawHub Security Guidelines
 
