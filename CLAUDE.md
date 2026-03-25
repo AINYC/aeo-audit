@@ -62,6 +62,16 @@ test/                # Unit and integration tests
 - Findings types: `found`, `missing`, `info`, `timeout`, `unreachable`
 - Unused vars starting with `_` are ignored by ESLint
 
+## Versioning
+
+Follows semver. Bump `version` in `package.json` on every change that ships:
+
+- **Patch** (`1.3.x`) — bug fixes, scoring corrections, internal refactors with no API change
+- **Minor** (`1.x.0`) — new analyzers, new CLI flags, new exported helpers (backwards-compatible)
+- **Major** (`x.0.0`) — breaking changes to the public API or scoring weights that would change existing audit results
+
+The ClawHub skill version must match `package.json`.
+
 ## ClawHub Publishing
 
 Publish the skill to ClawHub after updating `skills/aeo/SKILL.md`:
