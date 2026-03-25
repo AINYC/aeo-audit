@@ -1,21 +1,34 @@
-import { clampScore, extractSchemaTypes } from './helpers.js'
+import { clampScore, extractSchemaTypes, findTopLevelSchemaByType } from './helpers.js'
 import type { AnalysisResult, AuditContext, StructuredDataEntry } from '../types.js'
-
-function findSchemaByType(structuredData: StructuredDataEntry[], typeName: string): StructuredDataEntry[] {
-  return structuredData.filter((item) => {
-    const rawType = item?.['@type']
-    const types = Array.isArray(rawType) ? rawType : [rawType]
-    return types.some((type) => typeof type === 'string' && type === typeName)
-  })
-}
 
 export function analyzeEeatSignals(context: AuditContext): AnalysisResult {
   const findings: AnalysisResult['findings'] = []
   const recommendations: string[] = []
   let score = 0
 
-  // Person schema with credentials (jobTitle, alumniOf, hasCredential)
-  const persons = findSchemaByType(context.structuredData, 'Person')
+  // Person schema with credentials (jobTitle, alumniOf, hasCredential).
+  // Count top-level Person declarations AND Persons in explicit authorial roles
+  // (author, creator, contributor) on any top-level schema — e.g. Article.author.
+  // Exclude deeply nested Persons (review authors, customers, etc.) which are not
+  // authoritative E-E-A-T signals for the page itself.
+  const persons: StructuredDataEntry[] = [
+    ...findTopLevelSchemaByType(context.structuredData, 'Person'),
+  ]
+  for (const item of context.structuredData) {
+    for (const prop of ['author', 'creator', 'contributor']) {
+      const val = (item as Record<string, unknown>)[prop]
+      if (!val) continue
+      for (const c of (Array.isArray(val) ? val : [val])) {
+        if (!c || typeof c !== 'object' || Array.isArray(c)) continue
+        const entry = c as StructuredDataEntry
+        const rawType = entry['@type']
+        const entryTypes = Array.isArray(rawType) ? rawType : [rawType]
+        if (entryTypes.some((t) => typeof t === 'string' && t === 'Person')) {
+          persons.push(entry)
+        }
+      }
+    }
+  }
   const credentialedPersons = persons.filter((person) =>
     person.jobTitle || person.alumniOf || person.hasCredential,
   )
@@ -78,11 +91,14 @@ export function analyzeEeatSignals(context: AuditContext): AnalysisResult {
     recommendations.push('Add footer links to privacy, terms, and about pages.')
   }
 
-  // Organization schema with founder or employee
+  // Organization schema with founder or employee.
+  // Only consider top-level entity declarations — not orgs nested as publisher,
+  // brand, memberOf, etc. inside other schemas — since those are references rather
+  // than the primary entity the page represents.
   const orgs = [
-    ...findSchemaByType(context.structuredData, 'Organization'),
-    ...findSchemaByType(context.structuredData, 'LocalBusiness'),
-    ...findSchemaByType(context.structuredData, 'ProfessionalService'),
+    ...findTopLevelSchemaByType(context.structuredData, 'Organization'),
+    ...findTopLevelSchemaByType(context.structuredData, 'LocalBusiness'),
+    ...findTopLevelSchemaByType(context.structuredData, 'ProfessionalService'),
   ]
 
   const orgWithPeople = orgs.filter((org) => org.founder || org.employee || org.member)

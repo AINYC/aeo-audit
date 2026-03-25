@@ -62,15 +62,43 @@ test/                # Unit and integration tests
 - Findings types: `found`, `missing`, `info`, `timeout`, `unreachable`
 - Unused vars starting with `_` are ignored by ESLint
 
+## Versioning
+
+Follows semver. Bump `version` in `package.json` on every change that ships:
+
+- **Patch** (`1.3.x`) — bug fixes, scoring corrections, internal refactors with no API change
+- **Minor** (`1.x.0`) — new analyzers, new CLI flags, new exported helpers (backwards-compatible)
+- **Major** (`x.0.0`) — breaking changes to the public API or scoring weights that would change existing audit results
+
+The ClawHub skill version must match `package.json`.
+
 ## ClawHub Publishing
 
-Publish the skill to ClawHub after updating `skills/aeo/SKILL.md`:
+Publish the skill to ClawHub after updating `skills/aeo/SKILL.md`.
+
+### Verify login
+
+```bash
+clawhub whoami   # should print your handle (e.g. arberx)
+```
+
+If not logged in: `clawhub login`
+
+### Publish
 
 ```bash
 clawhub publish skills/aeo --version <semver> --changelog "<description of changes>"
 ```
 
-The `--version` flag must be valid semver and should match `package.json`. Include a short changelog summarizing what changed.
+- `--version` must be valid semver and **must match `package.json`**
+- Include a short changelog summarizing what changed
+- Run from the repo root (the `skills/` directory is resolved relative to cwd)
+
+### Example
+
+```bash
+clawhub publish skills/aeo --version 1.3.3 --changelog "Fix nested schema detection and E-E-A-T signal scoping"
+```
 
 ### ClawHub Security Guidelines
 
