@@ -1,13 +1,5 @@
-import { clampScore, extractSchemaTypes } from './helpers.js'
-import type { AnalysisResult, AuditContext, StructuredDataEntry } from '../types.js'
-
-function findSchemaByType(structuredData: StructuredDataEntry[], typeName: string): StructuredDataEntry[] {
-  return structuredData.filter((item) => {
-    const rawType = item?.['@type']
-    const types = Array.isArray(rawType) ? rawType : [rawType]
-    return types.some((type) => typeof type === 'string' && type === typeName)
-  })
-}
+import { clampScore, extractSchemaTypes, findSchemaByType } from './helpers.js'
+import type { AnalysisResult, AuditContext } from '../types.js'
 
 export function analyzeEeatSignals(context: AuditContext): AnalysisResult {
   const findings: AnalysisResult['findings'] = []

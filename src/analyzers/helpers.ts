@@ -95,11 +95,32 @@ export function extractSchemaTypes(structuredData: StructuredDataEntry[]): Set<s
   const types = new Set<string>()
 
   for (const item of structuredData) {
-    const rawType = item?.['@type']
-    if (!rawType) {
-      continue
-    }
+    collectNestedTypes(item, types)
+  }
 
+  return types
+}
+
+function collectNestedTypes(obj: unknown, types: Set<string>, seen = new WeakSet<object>()): void {
+  if (!obj || typeof obj !== 'object') {
+    return
+  }
+
+  if (seen.has(obj as object)) {
+    return
+  }
+  seen.add(obj as object)
+
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      collectNestedTypes(item, types, seen)
+    }
+    return
+  }
+
+  const record = obj as Record<string, unknown>
+  const rawType = record['@type']
+  if (rawType) {
     const typeValues = Array.isArray(rawType) ? rawType : [rawType]
     for (const type of typeValues) {
       if (typeof type === 'string' && type.trim()) {
@@ -108,7 +129,54 @@ export function extractSchemaTypes(structuredData: StructuredDataEntry[]): Set<s
     }
   }
 
-  return types
+  for (const value of Object.values(record)) {
+    if (value && typeof value === 'object') {
+      collectNestedTypes(value, types, seen)
+    }
+  }
+}
+
+export function findSchemaByType(structuredData: StructuredDataEntry[], typeName: string): StructuredDataEntry[] {
+  const results: StructuredDataEntry[] = []
+
+  for (const item of structuredData) {
+    collectNestedByType(item, typeName, results, new WeakSet())
+  }
+
+  return results
+}
+
+function collectNestedByType(obj: unknown, typeName: string, results: StructuredDataEntry[], seen: WeakSet<object>): void {
+  if (!obj || typeof obj !== 'object') {
+    return
+  }
+
+  if (seen.has(obj as object)) {
+    return
+  }
+  seen.add(obj as object)
+
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      collectNestedByType(item, typeName, results, seen)
+    }
+    return
+  }
+
+  const record = obj as StructuredDataEntry
+  const rawType = record['@type']
+  if (rawType) {
+    const types = Array.isArray(rawType) ? rawType : [rawType]
+    if (types.some((type) => typeof type === 'string' && type === typeName)) {
+      results.push(record)
+    }
+  }
+
+  for (const value of Object.values(record)) {
+    if (value && typeof value === 'object') {
+      collectNestedByType(value, typeName, results, seen)
+    }
+  }
 }
 
 export function getStructuredDataNames(structuredData: StructuredDataEntry[]): string[] {

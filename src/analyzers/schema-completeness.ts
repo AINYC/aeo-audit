@@ -1,17 +1,9 @@
-import { clampScore } from './helpers.js'
+import { clampScore, findSchemaByType } from './helpers.js'
 import type { AnalysisResult, AuditContext, StructuredDataEntry } from '../types.js'
 
 interface BestSchemaMatch {
   score: number
   item: StructuredDataEntry | null
-}
-
-function findSchemaByType(structuredData: StructuredDataEntry[], typeName: string): StructuredDataEntry[] {
-  return structuredData.filter((item) => {
-    const rawType = item?.['@type']
-    const types = Array.isArray(rawType) ? rawType : [rawType]
-    return types.some((type) => typeof type === 'string' && type === typeName)
-  })
 }
 
 function propertyCompleteness(item: StructuredDataEntry | null, requiredProps: string[]): number {
