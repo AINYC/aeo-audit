@@ -136,6 +136,14 @@ function collectNestedTypes(obj: unknown, types: Set<string>, seen = new WeakSet
   }
 }
 
+export function findTopLevelSchemaByType(structuredData: StructuredDataEntry[], typeName: string): StructuredDataEntry[] {
+  return structuredData.filter((item) => {
+    const rawType = item?.['@type']
+    const types = Array.isArray(rawType) ? rawType : [rawType]
+    return types.some((type) => typeof type === 'string' && type === typeName)
+  })
+}
+
 export function findSchemaByType(structuredData: StructuredDataEntry[], typeName: string): StructuredDataEntry[] {
   const results: StructuredDataEntry[] = []
 
