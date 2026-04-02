@@ -15,6 +15,7 @@ import { analyzeEeatSignals } from './analyzers/eeat-signals.js'
 import { analyzeAiCrawlerAccess } from './analyzers/ai-crawler-access.js'
 import { analyzeSchemaCompleteness } from './analyzers/schema-completeness.js'
 import { analyzeContentExtractability } from './analyzers/content-extractability.js'
+import { analyzeTechnicalSeo } from './analyzers/technical-seo.js'
 import { getVisibleText, parseJsonLdScripts, countWords } from './analyzers/helpers.js'
 import { FACTOR_DEFINITIONS, OPTIONAL_FACTOR_DEFINITIONS, scoreFactors } from './scoring.js'
 import type { Analyzer, AuditContext, AuditReport, RunAeoAuditOptions, ScoredFactor } from './types.js'
@@ -37,6 +38,7 @@ const ANALYZER_BY_ID: Record<string, Analyzer> = {
   'ai-crawler-access': analyzeAiCrawlerAccess,
   'schema-completeness': analyzeSchemaCompleteness,
   'content-extractability': analyzeContentExtractability,
+  'technical-seo': analyzeTechnicalSeo,
 }
 
 const ALL_FACTOR_IDS = new Set([
