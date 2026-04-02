@@ -149,7 +149,7 @@ test('compiled CLI returns the expected JSON report for the fixture site', async
   assert.equal(report.url, FIXTURE_ORIGIN)
   assert.equal(report.finalUrl, FIXTURE_ORIGIN)
   assert.equal(report.auditedAt, FIXED_NOW)
-  assert.equal(report.overallScore, 74)
+  assert.equal(report.overallScore, 75)
   assert.equal(report.overallGrade, 'C')
   assert.equal(
     report.summary,
@@ -188,6 +188,7 @@ test('compiled CLI returns the expected JSON report for the fixture site', async
       { id: 'definition-blocks', score: 100, grade: 'A+', status: 'pass' },
       { id: 'ai-crawler-access', score: 100, grade: 'A+', status: 'pass' },
       { id: 'named-entities', score: 84, grade: 'B', status: 'pass' },
+      { id: 'technical-seo', score: 80, grade: 'B-', status: 'pass' },
       { id: 'geographic-signals', score: 94, grade: 'A', status: 'pass' },
     ],
   )

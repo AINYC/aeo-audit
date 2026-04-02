@@ -15,6 +15,7 @@ export const FACTOR_DEFINITIONS: FactorDefinition[] = [
   { id: 'definition-blocks', name: 'Definition Blocks', weight: 6 },
   { id: 'ai-crawler-access', name: 'AI Crawler Access', weight: 4 },
   { id: 'named-entities', name: 'Named Entities', weight: 6 },
+  { id: 'technical-seo', name: 'Technical SEO', weight: 5 },
 ]
 
 export const OPTIONAL_FACTOR_DEFINITIONS: FactorDefinition[] = [
