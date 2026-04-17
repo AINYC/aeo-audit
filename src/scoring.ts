@@ -20,6 +20,7 @@ export const FACTOR_DEFINITIONS: FactorDefinition[] = [
 
 export const OPTIONAL_FACTOR_DEFINITIONS: FactorDefinition[] = [
   { id: 'geographic-signals', name: 'Geographic Signals', weight: 7 },
+  { id: 'agent-skill-exposure', name: 'Agent Skill Exposure', weight: 6 },
 ]
 
 export function scoreToGrade(score: number): string {
