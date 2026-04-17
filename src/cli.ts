@@ -26,6 +26,7 @@ interface ParsedArgs {
   format: string
   factors: string[] | null
   includeGeo: boolean
+  includeAgentSkills: boolean
   help: boolean
   sitemap: boolean
   sitemapUrl: string | null
@@ -44,6 +45,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     format: 'text',
     factors: null,
     includeGeo: false,
+    includeAgentSkills: false,
     help: false,
     sitemap: false,
     sitemapUrl: null,
@@ -60,6 +62,8 @@ function parseArgs(argv: string[]): ParsedArgs {
       i += 1
     } else if (args[i] === '--include-geo') {
       result.includeGeo = true
+    } else if (args[i] === '--include-agent-skills') {
+      result.includeAgentSkills = true
     } else if (args[i] === '--sitemap') {
       result.sitemap = true
       // Check if the next arg is an explicit sitemap URL (not another flag)
@@ -93,6 +97,7 @@ Options:
   --format <type>     Output format: text (default), json, markdown
   --factors <list>    Comma-separated factor IDs to run (runs all if omitted)
   --include-geo       Include optional geographic signals factor
+  --include-agent-skills  Include optional agent skill exposure factor (Schema.org Action, MCP, form affordances)
   --sitemap [url]     Audit all pages from sitemap (auto-discovers /sitemap.xml or use explicit URL)
   --limit <n>         Max pages to audit in sitemap mode (sorted by sitemap priority)
   --top-issues        In sitemap mode, skip per-page output and show only cross-cutting issues
@@ -133,6 +138,7 @@ export async function main(argv: string[] = process.argv): Promise<number> {
       const options: SitemapAuditOptions = {
         factors: args.factors,
         includeGeo: args.includeGeo,
+        includeAgentSkills: args.includeAgentSkills,
         sitemapUrl: args.sitemapUrl ?? undefined,
         limit: args.limit ?? undefined,
         topIssuesOnly: args.topIssues,
@@ -148,6 +154,7 @@ export async function main(argv: string[] = process.argv): Promise<number> {
     const report = await runAeoAudit(args.url, {
       factors: args.factors,
       includeGeo: args.includeGeo,
+      includeAgentSkills: args.includeAgentSkills,
     })
 
     console.log(formatter(report))

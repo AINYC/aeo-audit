@@ -16,6 +16,7 @@ import { analyzeAiCrawlerAccess } from './analyzers/ai-crawler-access.js'
 import { analyzeSchemaCompleteness } from './analyzers/schema-completeness.js'
 import { analyzeContentExtractability } from './analyzers/content-extractability.js'
 import { analyzeTechnicalSeo } from './analyzers/technical-seo.js'
+import { analyzeAgentSkillExposure } from './analyzers/agent-skill-exposure.js'
 import { getVisibleText, parseJsonLdScripts, countWords } from './analyzers/helpers.js'
 import { FACTOR_DEFINITIONS, OPTIONAL_FACTOR_DEFINITIONS, scoreFactors } from './scoring.js'
 import type { Analyzer, AuditContext, AuditReport, RunAeoAuditOptions, ScoredFactor } from './types.js'
@@ -39,6 +40,7 @@ const ANALYZER_BY_ID: Record<string, Analyzer> = {
   'schema-completeness': analyzeSchemaCompleteness,
   'content-extractability': analyzeContentExtractability,
   'technical-seo': analyzeTechnicalSeo,
+  'agent-skill-exposure': analyzeAgentSkillExposure,
 }
 
 const ALL_FACTOR_IDS = new Set([
@@ -88,14 +90,19 @@ export async function runAeoAudit(rawUrl: string, options: RunAeoAuditOptions = 
   }
 
   // Determine which factors to run
-  let activeDefs = [...FACTOR_DEFINITIONS]
+  const enabledOptional = new Set<string>()
+  if (options.includeGeo) enabledOptional.add('geographic-signals')
+  if (options.includeAgentSkills) enabledOptional.add('agent-skill-exposure')
 
-  if (options.includeGeo) {
-    activeDefs = [...activeDefs, ...OPTIONAL_FACTOR_DEFINITIONS]
-  }
+  let activeDefs = [
+    ...FACTOR_DEFINITIONS,
+    ...OPTIONAL_FACTOR_DEFINITIONS.filter((def) => enabledOptional.has(def.id)),
+  ]
 
   if (selectedFactors.length > 0) {
-    activeDefs = activeDefs.filter((def) => selectedFactors.includes(def.id))
+    // Explicit --factors overrides opt-in flags: let users target any factor by id.
+    const universe = [...FACTOR_DEFINITIONS, ...OPTIONAL_FACTOR_DEFINITIONS]
+    activeDefs = universe.filter((def) => selectedFactors.includes(def.id))
   }
 
   const rawFactorResults = await Promise.all(

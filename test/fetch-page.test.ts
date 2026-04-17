@@ -1,34 +1,33 @@
-import assert from 'node:assert/strict'
-import test from 'node:test'
+import { test, expect } from 'vitest'
 
 import { isHostnameBlocked, isPublicIpAddress, normalizeTargetUrl } from '../src/fetch-page.js'
 
 test('normalizeTargetUrl prepends https when scheme is missing', () => {
   const normalized = normalizeTargetUrl('example.com')
-  assert.equal(normalized.toString(), 'https://example.com/')
+  expect(normalized.toString()).toBe('https://example.com/')
 })
 
 test('normalizeTargetUrl rejects unsupported protocols', () => {
-  assert.throws(() => normalizeTargetUrl('ftp://example.com'))
+  expect(() => normalizeTargetUrl('ftp://example.com')).toThrow()
 })
 
 test('isHostnameBlocked blocks localhost-like targets', () => {
-  assert.equal(isHostnameBlocked('localhost'), true)
-  assert.equal(isHostnameBlocked('internal'), true)
-  assert.equal(isHostnameBlocked('subdomain.local'), true)
+  expect(isHostnameBlocked('localhost')).toBe(true)
+  expect(isHostnameBlocked('internal')).toBe(true)
+  expect(isHostnameBlocked('subdomain.local')).toBe(true)
 })
 
 test('isHostnameBlocked allows public hostnames', () => {
-  assert.equal(isHostnameBlocked('example.com'), false)
+  expect(isHostnameBlocked('example.com')).toBe(false)
 })
 
 test('isPublicIpAddress rejects private and loopback ranges', () => {
-  assert.equal(isPublicIpAddress('127.0.0.1'), false)
-  assert.equal(isPublicIpAddress('10.10.10.10'), false)
-  assert.equal(isPublicIpAddress('192.168.1.20'), false)
+  expect(isPublicIpAddress('127.0.0.1')).toBe(false)
+  expect(isPublicIpAddress('10.10.10.10')).toBe(false)
+  expect(isPublicIpAddress('192.168.1.20')).toBe(false)
 })
 
 test('isPublicIpAddress accepts routable addresses', () => {
-  assert.equal(isPublicIpAddress('1.1.1.1'), true)
-  assert.equal(isPublicIpAddress('8.8.8.8'), true)
+  expect(isPublicIpAddress('1.1.1.1')).toBe(true)
+  expect(isPublicIpAddress('8.8.8.8')).toBe(true)
 })

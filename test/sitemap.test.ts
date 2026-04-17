@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict'
-import test from 'node:test'
+import { test, expect } from 'vitest'
 
 import { parseSitemapXml, shouldSkipUrl } from '../src/sitemap.js'
 
@@ -20,13 +19,13 @@ test('parseSitemapXml extracts loc and priority from url blocks', () => {
 </urlset>`
 
   const entries = parseSitemapXml(xml)
-  assert.equal(entries.length, 3)
-  assert.equal(entries[0].loc, 'https://example.com/')
-  assert.equal(entries[0].priority, 1.0)
-  assert.equal(entries[1].loc, 'https://example.com/about')
-  assert.equal(entries[1].priority, 0.8)
-  assert.equal(entries[2].loc, 'https://example.com/blog')
-  assert.equal(entries[2].priority, undefined)
+  expect(entries).toHaveLength(3)
+  expect(entries[0].loc).toBe('https://example.com/')
+  expect(entries[0].priority).toBe(1.0)
+  expect(entries[1].loc).toBe('https://example.com/about')
+  expect(entries[1].priority).toBe(0.8)
+  expect(entries[2].loc).toBe('https://example.com/blog')
+  expect(entries[2].priority).toBeUndefined()
 })
 
 test('parseSitemapXml handles sitemap index files', () => {
@@ -41,24 +40,24 @@ test('parseSitemapXml handles sitemap index files', () => {
 </sitemapindex>`
 
   const entries = parseSitemapXml(xml)
-  assert.equal(entries.length, 2)
-  assert.equal(entries[0].loc, 'https://example.com/sitemap-posts.xml')
-  assert.equal(entries[1].loc, 'https://example.com/sitemap-pages.xml')
+  expect(entries).toHaveLength(2)
+  expect(entries[0].loc).toBe('https://example.com/sitemap-posts.xml')
+  expect(entries[1].loc).toBe('https://example.com/sitemap-pages.xml')
 })
 
 test('shouldSkipUrl filters non-HTML URLs', () => {
-  assert.equal(shouldSkipUrl('https://example.com/doc.pdf'), true)
-  assert.equal(shouldSkipUrl('https://example.com/image.png'), true)
-  assert.equal(shouldSkipUrl('https://example.com/data.xml'), true)
-  assert.equal(shouldSkipUrl('https://example.com/robots.txt'), true)
-  assert.equal(shouldSkipUrl('https://example.com/style.css'), true)
-  assert.equal(shouldSkipUrl('https://example.com/app.js'), true)
+  expect(shouldSkipUrl('https://example.com/doc.pdf')).toBe(true)
+  expect(shouldSkipUrl('https://example.com/image.png')).toBe(true)
+  expect(shouldSkipUrl('https://example.com/data.xml')).toBe(true)
+  expect(shouldSkipUrl('https://example.com/robots.txt')).toBe(true)
+  expect(shouldSkipUrl('https://example.com/style.css')).toBe(true)
+  expect(shouldSkipUrl('https://example.com/app.js')).toBe(true)
 })
 
 test('shouldSkipUrl allows HTML content pages', () => {
-  assert.equal(shouldSkipUrl('https://example.com/'), false)
-  assert.equal(shouldSkipUrl('https://example.com/about'), false)
-  assert.equal(shouldSkipUrl('https://example.com/blog/post-1'), false)
-  assert.equal(shouldSkipUrl('https://example.com/page.html'), false)
-  assert.equal(shouldSkipUrl('https://example.com/page.htm'), false)
+  expect(shouldSkipUrl('https://example.com/')).toBe(false)
+  expect(shouldSkipUrl('https://example.com/about')).toBe(false)
+  expect(shouldSkipUrl('https://example.com/blog/post-1')).toBe(false)
+  expect(shouldSkipUrl('https://example.com/page.html')).toBe(false)
+  expect(shouldSkipUrl('https://example.com/page.htm')).toBe(false)
 })

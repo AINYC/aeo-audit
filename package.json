@@ -36,7 +36,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test test/*.test.ts test/analyzers/*.test.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "pretest:e2e": "pnpm run build",
     "test:e2e": "tsx --test test/e2e/*.test.ts",
     "lint": "eslint src/ test/ bin/ eslint.config.js",
@@ -53,7 +54,8 @@
     "globals": "^17.4.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.43.0"
+    "typescript-eslint": "^8.43.0",
+    "vitest": "^4.1.4"
   },
   "engines": {
     "node": ">=20"
