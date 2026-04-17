@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict'
-import test from 'node:test'
+import { test, expect } from 'vitest'
 import { load } from 'cheerio'
 
 import { parseJsonLdScripts, getVisibleText, extractSchemaTypes } from '../../src/analyzers/helpers.js'
@@ -30,8 +29,8 @@ function buildContext(html: string, auxiliary: AuxiliaryResources = defaultAuxil
 
 test('structured data analyzer scores strong fixture highly', () => {
   const result = analyzeStructuredData(buildContext(strongHtml))
-  assert.ok(result.score >= 75)
-  assert.ok(result.findings.some((finding) => finding.type === 'found'))
+  expect(result.score).toBeGreaterThanOrEqual(75)
+  expect(result.findings.some((finding) => finding.type === 'found')).toBe(true)
 })
 
 test('ai-readable analyzer handles timeout as uncertain instead of hard-missing', () => {
@@ -44,14 +43,14 @@ test('ai-readable analyzer handles timeout as uncertain instead of hard-missing'
   })
 
   const result = analyzeAiReadableContent(context)
-  assert.ok(result.score > 0)
-  assert.ok(result.findings.some((finding) => finding.type === 'timeout'))
+  expect(result.score).toBeGreaterThan(0)
+  expect(result.findings.some((finding) => finding.type === 'timeout')).toBe(true)
 })
 
 test('content depth analyzer penalizes thin pages', () => {
   const result = analyzeContentDepth(buildContext(weakHtml))
-  assert.ok(result.score < 50)
-  assert.ok(result.findings.some((finding) => finding.type === 'missing'))
+  expect(result.score).toBeLessThan(50)
+  expect(result.findings.some((finding) => finding.type === 'missing')).toBe(true)
 })
 
 test('freshness analyzer reports sitemap timeout as timeout finding', () => {
@@ -64,7 +63,7 @@ test('freshness analyzer reports sitemap timeout as timeout finding', () => {
   })
 
   const result = analyzeContentFreshness(context)
-  assert.ok(result.findings.some((finding) => finding.type === 'timeout'))
+  expect(result.findings.some((finding) => finding.type === 'timeout')).toBe(true)
 })
 
 test('extractSchemaTypes finds nested HowTo inside a parent schema', () => {
@@ -90,10 +89,10 @@ test('extractSchemaTypes finds nested HowTo inside a parent schema', () => {
   const structuredData = parseJsonLdScripts($)
   const types = extractSchemaTypes(structuredData)
 
-  assert.ok(types.has('HowTo'), 'should detect nested HowTo')
-  assert.ok(types.has('ProfessionalService'), 'should detect top-level ProfessionalService')
-  assert.ok(types.has('LocalBusiness'), 'should detect top-level LocalBusiness')
-  assert.ok(types.has('HowToStep'), 'should detect deeply nested HowToStep')
+  expect(types.has('HowTo')).toBe(true)
+  expect(types.has('ProfessionalService')).toBe(true)
+  expect(types.has('LocalBusiness')).toBe(true)
+  expect(types.has('HowToStep')).toBe(true)
 })
 
 test('structured data analyzer detects nested HowTo schema', () => {
@@ -131,8 +130,8 @@ test('structured data analyzer detects nested HowTo schema', () => {
 
   const result = analyzeStructuredData(buildContext(html))
   const howToFinding = result.findings.find((f) => f.message.includes('HowTo'))
-  assert.ok(howToFinding, 'should have a HowTo finding')
-  assert.equal(howToFinding?.type, 'found', 'HowTo should be detected as found, not missing')
+  expect(howToFinding).toBeDefined()
+  expect(howToFinding?.type).toBe('found')
 })
 
 test('scoring engine computes grades and statuses', () => {
@@ -155,7 +154,7 @@ test('scoring engine computes grades and statuses', () => {
     },
   ])
 
-  assert.equal(scored.factors[0].status, 'pass')
-  assert.equal(scored.factors[1].status, 'fail')
-  assert.ok(typeof scored.overallGrade === 'string')
+  expect(scored.factors[0].status).toBe('pass')
+  expect(scored.factors[1].status).toBe('fail')
+  expect(typeof scored.overallGrade).toBe('string')
 })

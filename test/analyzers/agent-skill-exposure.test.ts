@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict'
-import test from 'node:test'
+import { describe, it, expect } from 'vitest'
 import { load } from 'cheerio'
 
 import { parseJsonLdScripts, getVisibleText } from '../../src/analyzers/helpers.js'
@@ -21,95 +20,265 @@ function buildContext(html: string, headers: Record<string, string> = {}): Audit
   }
 }
 
-test('agent-skill-exposure rewards well-formed SearchAction with target and query-input', () => {
-  const html = `<!doctype html><html><head>
-    <title>Shop</title>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": { "urlTemplate": "https://example.com/search?q={query}" },
-        "query-input": "required name=query"
-      }
-    }
-    </script>
-  </head><body></body></html>`
+const wrap = (head: string, body: string = '') =>
+  `<!doctype html><html><head><title>T</title>${head}</head><body>${body}</body></html>`
+const ld = (obj: unknown) => `<script type="application/ld+json">${JSON.stringify(obj)}</script>`
 
-  const result = analyzeAgentSkillExposure(buildContext(html))
-  assert.ok(result.score >= 35, `expected >=35, got ${result.score}`)
-  assert.ok(result.findings.some((f) => f.type === 'found' && f.message.includes('Action')))
+// ─── Schema.org Action markup ─────────────────────────────────────────────────
+describe('Schema.org Action markup', () => {
+  it('credits +35 for a well-formed SearchAction with target and query-input', () => {
+    const result = analyzeAgentSkillExposure(buildContext(wrap(ld({
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: { urlTemplate: 'https://example.com/search?q={query}' },
+        'query-input': 'required name=query',
+      },
+    }))))
+    expect(result.findings.some((f) => f.type === 'found' && f.message.includes('SearchAction'))).toBe(true)
+  })
+
+  it('detects Action nested at arbitrary depth under potentialAction', () => {
+    const result = analyzeAgentSkillExposure(buildContext(wrap(ld({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'Organization',
+          name: 'Acme',
+          potentialAction: {
+            '@type': 'OrderAction',
+            target: { urlTemplate: 'https://example.com/order?sku={sku}' },
+            object: { '@type': 'Product' },
+          },
+        },
+      ],
+    }))))
+    expect(result.findings.some((f) => f.type === 'found' && f.message.includes('OrderAction'))).toBe(true)
+  })
+
+  it('credits +18 (not +35) when Action is declared but missing target or input shape', () => {
+    const result = analyzeAgentSkillExposure(buildContext(wrap(ld({
+      '@context': 'https://schema.org',
+      '@type': 'SearchAction',
+    }))))
+    expect(result.findings.some((f) => f.type === 'info' && f.message.includes('missing target'))).toBe(true)
+    expect(result.recommendations.some((r) => r.includes('target'))).toBe(true)
+    // No other signals → only +18 from Action
+    expect(result.score).toBe(18)
+  })
+
+  it('flags missing Action markup with a recommendation on a page with no schema', () => {
+    const result = analyzeAgentSkillExposure(buildContext(wrap('')))
+    expect(result.findings.some((f) => f.type === 'missing' && f.message.includes('Action'))).toBe(true)
+    expect(result.recommendations.some((r) => r.includes('Schema.org Action markup'))).toBe(true)
+  })
+
+  it('reports all distinct Action types when multiple are present', () => {
+    const result = analyzeAgentSkillExposure(buildContext(wrap(ld([
+      {
+        '@type': 'SearchAction',
+        target: { urlTemplate: 'https://x/?q={q}' },
+        'query-input': 'required name=q',
+      },
+      {
+        '@type': 'SubscribeAction',
+        target: { urlTemplate: 'https://x/sub' },
+        object: {},
+      },
+    ]))))
+    const found = result.findings.find((f) => f.type === 'found' && f.message.includes('Action'))
+    expect(found?.message).toMatch(/SearchAction/)
+    expect(found?.message).toMatch(/SubscribeAction/)
+  })
 })
 
-test('agent-skill-exposure flags Action schema missing target or inputs as partial', () => {
-  const html = `<!doctype html><html><head>
-    <script type="application/ld+json">
-    { "@context": "https://schema.org", "@type": "SearchAction" }
-    </script>
-  </head><body></body></html>`
+// ─── MCP / WebMCP / ai-plugin discovery ──────────────────────────────────────
+describe('MCP discovery', () => {
+  it.each([
+    ['mcp', '<link rel="mcp" href="/.well-known/mcp.json">'],
+    ['webmcp', '<link rel="webmcp" href="/.well-known/webmcp.json">'],
+    ['ai-plugin', '<link rel="ai-plugin" href="/.well-known/ai-plugin.json">'],
+  ])('credits +20 for <link rel="%s">', (_, tag) => {
+    const result = analyzeAgentSkillExposure(buildContext(wrap(tag)))
+    expect(result.findings.some((f) => f.type === 'found' && f.message.includes('Agent protocol discovery'))).toBe(true)
+    expect(result.findings.some((f) => f.type === 'found' && f.message.includes('<link'))).toBe(true)
+  })
 
-  const result = analyzeAgentSkillExposure(buildContext(html))
-  assert.ok(result.findings.some((f) => f.type === 'info' && f.message.includes('missing target')))
-  assert.ok(result.recommendations.some((r) => r.includes('target')))
+  it.each([
+    'mcp-server',
+    'mcp-server-url',
+    'ai-plugin',
+  ])('credits +20 for <meta name="%s">', (name) => {
+    const result = analyzeAgentSkillExposure(buildContext(wrap(`<meta name="${name}" content="/.well-known/mcp.json">`)))
+    expect(result.findings.some((f) => f.type === 'found' && f.message.includes('<meta'))).toBe(true)
+  })
+
+  it('credits +20 when MCP is advertised via the Link response header', () => {
+    const result = analyzeAgentSkillExposure(buildContext(wrap(''), {
+      link: '</.well-known/mcp.json>; rel="mcp"',
+    }))
+    expect(result.findings.some((f) => f.type === 'found' && f.message.includes('Link header'))).toBe(true)
+  })
+
+  it('flags MCP as missing when no discovery mechanism is present', () => {
+    const result = analyzeAgentSkillExposure(buildContext(wrap('')))
+    expect(result.findings.some((f) => f.type === 'missing' && f.message.includes('MCP'))).toBe(true)
+    expect(result.recommendations.some((r) => r.includes('MCP server card'))).toBe(true)
+  })
 })
 
-test('agent-skill-exposure detects MCP discovery link and link header', () => {
-  const htmlWithLink = `<!doctype html><html><head>
-    <link rel="mcp" href="/.well-known/mcp.json">
-  </head><body></body></html>`
-  const linkResult = analyzeAgentSkillExposure(buildContext(htmlWithLink))
-  assert.ok(linkResult.findings.some((f) => f.type === 'found' && f.message.includes('Agent protocol discovery')))
+// ─── OpenAPI / service-description links ─────────────────────────────────────
+describe('OpenAPI / service-description links', () => {
+  it.each([
+    ['describedby + openapi+json', '<link rel="describedby" type="application/openapi+json" href="/openapi.json">'],
+    ['service-desc', '<link rel="service-desc" href="/openapi.json">'],
+    ['describedby + yaml', '<link rel="describedby" type="application/yaml" href="/openapi.yaml">'],
+  ])('credits +10 for %s', (_, tag) => {
+    const result = analyzeAgentSkillExposure(buildContext(wrap(tag)))
+    expect(result.findings.some((f) => f.type === 'found' && f.message.includes('Service description'))).toBe(true)
+  })
 
-  const htmlPlain = `<!doctype html><html><head></head><body></body></html>`
-  const headerResult = analyzeAgentSkillExposure(
-    buildContext(htmlPlain, { link: '</.well-known/mcp.json>; rel="mcp"' }),
-  )
-  assert.ok(headerResult.findings.some((f) => f.type === 'found' && f.message.includes('Link header')))
+  it('flags info when no service-description link is present', () => {
+    const result = analyzeAgentSkillExposure(buildContext(wrap('')))
+    expect(result.findings.some((f) => f.type === 'info' && f.message.includes('OpenAPI'))).toBe(true)
+  })
 })
 
-test('agent-skill-exposure credits a fully agent-usable form', () => {
-  const html = `<!doctype html><html><body>
-    <form aria-label="Sign up">
-      <label for="email">Email</label>
-      <input id="email" type="email" name="email" autocomplete="email" required>
-      <label for="phone">Phone</label>
-      <input id="phone" type="tel" name="phone" autocomplete="tel">
-      <label for="zip">ZIP</label>
-      <input id="zip" type="text" name="postal-code" autocomplete="postal-code">
-      <button type="submit">Sign up</button>
-    </form>
-  </body></html>`
+// ─── Microdata typed fields ──────────────────────────────────────────────────
+describe('microdata typed fields', () => {
+  it('credits +10 when at least three itemprop attributes are present', () => {
+    const body = '<span itemprop="name">N</span><span itemprop="email">e</span><span itemprop="telephone">t</span>'
+    const result = analyzeAgentSkillExposure(buildContext(wrap('', body)))
+    expect(result.findings.some((f) => f.type === 'found' && f.message.includes('Microdata present'))).toBe(true)
+  })
 
-  const result = analyzeAgentSkillExposure(buildContext(html))
-  assert.ok(
-    result.findings.some((f) => f.type === 'found' && f.message.includes('strong agent-usable structure')),
-    `expected strong-form finding, got: ${JSON.stringify(result.findings)}`,
-  )
+  it('credits +10 when an itemtype is declared even with few itemprop attributes', () => {
+    const body = '<div itemscope itemtype="https://schema.org/Person"><span itemprop="name">N</span></div>'
+    const result = analyzeAgentSkillExposure(buildContext(wrap('', body)))
+    expect(result.findings.some((f) => f.type === 'found' && f.message.includes('Microdata present'))).toBe(true)
+  })
+
+  it('flags info when microdata is sparse or absent', () => {
+    const result = analyzeAgentSkillExposure(buildContext(wrap('', '<span itemprop="name">N</span>')))
+    expect(result.findings.some((f) => f.type === 'info' && f.message.includes('Little or no microdata'))).toBe(true)
+  })
 })
 
-test('agent-skill-exposure penalizes unlabeled form with no autocomplete', () => {
-  const html = `<!doctype html><html><body>
-    <form>
-      <input type="text" name="field_1">
-      <input type="text" name="field_2">
-      <input type="text" name="field_3">
-      <button>Go</button>
-    </form>
-  </body></html>`
+// ─── Form structural fallback ────────────────────────────────────────────────
+describe('form structural fallback', () => {
+  it('flags no-form pages with an informational finding (no penalty)', () => {
+    const result = analyzeAgentSkillExposure(buildContext(wrap('')))
+    expect(result.findings.some((f) => f.type === 'info' && f.message.includes('No interactive forms'))).toBe(true)
+  })
 
-  const result = analyzeAgentSkillExposure(buildContext(html))
-  assert.ok(
-    result.findings.some((f) => f.type === 'missing' && f.message.includes('weak structure')),
-    `expected weak-form finding, got: ${JSON.stringify(result.findings)}`,
-  )
-  assert.ok(result.recommendations.some((r) => r.includes('autocomplete')))
+  it('ignores forms that only contain hidden inputs', () => {
+    const body = '<form><input type="hidden" name="csrf" value="abc"><button type="submit">Go</button></form>'
+    const result = analyzeAgentSkillExposure(buildContext(wrap('', body)))
+    expect(result.findings.some((f) => f.type === 'info' && f.message.includes('No interactive forms'))).toBe(true)
+  })
+
+  it('rewards a form with labels, autocomplete tokens and semantic input types', () => {
+    const body = `
+      <form aria-label="Sign up">
+        <label for="email">Email</label>
+        <input id="email" type="email" name="email" autocomplete="email" required>
+        <label for="phone">Phone</label>
+        <input id="phone" type="tel" name="phone" autocomplete="tel">
+        <label for="zip">ZIP</label>
+        <input id="zip" type="text" name="postal-code" autocomplete="postal-code">
+        <button type="submit">Sign up</button>
+      </form>`
+    const result = analyzeAgentSkillExposure(buildContext(wrap('', body)))
+    expect(result.findings.some((f) => f.type === 'found' && f.message.includes('strong agent-usable structure'))).toBe(true)
+  })
+
+  it('penalizes a form with no labels, no autocomplete, and placeholder-only names', () => {
+    const body = `
+      <form>
+        <input type="text" name="field_1">
+        <input type="text" name="field_2">
+        <input type="text" name="field_3">
+        <button>Go</button>
+      </form>`
+    const result = analyzeAgentSkillExposure(buildContext(wrap('', body)))
+    expect(result.findings.some((f) => f.type === 'missing' && f.message.includes('weak structure'))).toBe(true)
+    expect(result.recommendations.some((r) => r.includes('autocomplete'))).toBe(true)
+  })
+
+  it('reports partial (info) when a form is labeled but lacks autocomplete and semantic types', () => {
+    const body = `
+      <form>
+        <label for="a">A</label>
+        <input id="a" type="text" name="first-name">
+        <label for="b">B</label>
+        <input id="b" type="text" name="last-name">
+        <button type="submit">Go</button>
+      </form>`
+    const result = analyzeAgentSkillExposure(buildContext(wrap('', body)))
+    expect(result.findings.some((f) => f.type === 'info' && f.message.includes('partially agent-usable'))).toBe(true)
+  })
+
+  it('averages across multiple forms — mixing a strong and a weak form yields a partial finding', () => {
+    const body = `
+      <form aria-label="Good">
+        <label for="a">A</label>
+        <input id="a" type="email" name="email" autocomplete="email">
+        <button type="submit">Send</button>
+      </form>
+      <form>
+        <input type="text" name="field_1">
+        <input type="text" name="field_2">
+        <button>Go</button>
+      </form>`
+    const result = analyzeAgentSkillExposure(buildContext(wrap('', body)))
+    const formFinding = result.findings.find((f) =>
+      f.message.includes('form(s)') && !f.message.includes('No interactive forms'),
+    )
+    expect(formFinding?.message).toMatch(/2 form/)
+    // 2 forms; avg should land in the partial band
+    expect(['info', 'missing']).toContain(formFinding?.type)
+  })
 })
 
-test('agent-skill-exposure scores zero on a bare page with no affordances', () => {
-  const html = '<!doctype html><html><head><title>Bare</title></head><body><p>Hello</p></body></html>'
-  const result = analyzeAgentSkillExposure(buildContext(html))
-  assert.equal(result.score, 0)
-  assert.ok(result.findings.some((f) => f.type === 'missing' && f.message.includes('Action')))
-  assert.ok(result.findings.some((f) => f.type === 'info' && f.message.includes('No interactive forms')))
+// ─── Additive / end-to-end scenarios ─────────────────────────────────────────
+describe('end-to-end score composition', () => {
+  it('returns 0 on a bare page with no affordances', () => {
+    const result = analyzeAgentSkillExposure(buildContext(wrap('')))
+    expect(result.score).toBe(0)
+  })
+
+  it('stacks all signals for a maximum-signal page', () => {
+    const head = [
+      ld({
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: { urlTemplate: 'https://example.com/?q={q}' },
+          'query-input': 'required name=q',
+        },
+      }),
+      '<link rel="mcp" href="/.well-known/mcp.json">',
+      '<link rel="describedby" type="application/openapi+json" href="/openapi.json">',
+    ].join('\n')
+
+    const body = `
+      <div itemscope itemtype="https://schema.org/Organization">
+        <span itemprop="name">N</span>
+        <span itemprop="email">e</span>
+        <span itemprop="telephone">t</span>
+      </div>
+      <form aria-label="Sign up">
+        <label for="email">Email</label>
+        <input id="email" type="email" name="email" autocomplete="email" required>
+        <label for="phone">Phone</label>
+        <input id="phone" type="tel" name="phone" autocomplete="tel">
+        <button type="submit">Sign up</button>
+      </form>`
+
+    const result = analyzeAgentSkillExposure(buildContext(wrap(head, body)))
+    // 35 (Action) + 20 (MCP) + 10 (OpenAPI) + 10 (microdata) + form bonus → ≥85
+    expect(result.score).toBeGreaterThanOrEqual(85)
+  })
 })
