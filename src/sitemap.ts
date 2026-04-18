@@ -134,8 +134,11 @@ async function resolveSitemapUrls(sitemapUrl: string): Promise<SitemapEntry[]> {
 function buildCrossCuttingIssues(successPages: AuditReport[]): CrossCuttingIssue[] {
   if (successPages.length === 0) return []
 
-  // Collect scores per factor across all pages
-  const factorScores = new Map<string, { name: string; scores: number[]; recommendations: Map<string, number> }>()
+  // Collect scores per factor across all pages. For each recommendation, track the URLs that produced it.
+  const factorScores = new Map<
+    string,
+    { name: string; scores: number[]; recommendations: Map<string, string[]> }
+  >()
 
   for (const page of successPages) {
     for (const factor of page.factors) {
@@ -147,7 +150,12 @@ function buildCrossCuttingIssues(successPages: AuditReport[]): CrossCuttingIssue
       entry.scores.push(factor.score)
 
       for (const rec of factor.recommendations) {
-        entry.recommendations.set(rec, (entry.recommendations.get(rec) || 0) + 1)
+        const urls = entry.recommendations.get(rec)
+        if (urls) {
+          urls.push(page.finalUrl)
+        } else {
+          entry.recommendations.set(rec, [page.finalUrl])
+        }
       }
     }
   }
@@ -158,13 +166,12 @@ function buildCrossCuttingIssues(successPages: AuditReport[]): CrossCuttingIssue
     const avgScore = Math.round(entry.scores.reduce((a, b) => a + b, 0) / entry.scores.length)
     const affectedPages = entry.scores.filter((s) => s < 70).length
 
-    if (affectedPages === 0) continue
+    if (affectedPages === 0 && entry.recommendations.size === 0) continue
 
-    // Sort recommendations by frequency
-    const topRecs = [...entry.recommendations.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([rec]) => rec)
+    // Sort recommendations by how many URLs they affect (desc), then alphabetically for stability
+    const sortedIssues = [...entry.recommendations.entries()]
+      .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))
+      .map(([recommendation, affectedUrls]) => ({ recommendation, affectedUrls }))
 
     issues.push({
       factorId,
@@ -173,7 +180,8 @@ function buildCrossCuttingIssues(successPages: AuditReport[]): CrossCuttingIssue
       avgGrade: scoreToGrade(avgScore),
       affectedPages,
       totalPages: successPages.length,
-      topRecommendations: topRecs,
+      topRecommendations: sortedIssues.slice(0, 3).map((i) => i.recommendation),
+      topIssues: sortedIssues,
     })
   }
 
@@ -276,4 +284,4 @@ export async function runSitemapAudit(rawUrl: string, options: SitemapAuditOptio
   }
 }
 
-export { parseSitemapXml, shouldSkipUrl }
+export { parseSitemapXml, shouldSkipUrl, buildCrossCuttingIssues }
