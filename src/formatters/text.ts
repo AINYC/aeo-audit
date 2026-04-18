@@ -113,6 +113,13 @@ export function formatSitemapText(report: SitemapAuditReport, topIssuesOnly = fa
       const pct = Math.round((issue.affectedPages / issue.totalPages) * 100)
       const igc = gradeColor(issue.avgGrade)
       lines.push(`  ${igc}${issue.avgGrade.padEnd(3)}${RESET} ${issue.factorName.padEnd(32)} ${DIM}avg ${issue.avgScore}/100, affects ${pct}% of pages${RESET}`)
+
+      for (const detail of issue.topIssues) {
+        lines.push(`      ${DIM}• ${detail.recommendation}${RESET} ${DIM}(${detail.affectedUrls.length}/${issue.totalPages} pages)${RESET}`)
+        for (const url of detail.affectedUrls) {
+          lines.push(`          ${DIM}- ${url}${RESET}`)
+        }
+      }
     }
 
     lines.push(`${'─'.repeat(70)}`)

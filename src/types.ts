@@ -152,6 +152,11 @@ export interface SitemapPageResult {
   metadata?: AuditMetadata
 }
 
+export interface CrossCuttingIssueDetail {
+  recommendation: string
+  affectedUrls: string[]
+}
+
 export interface CrossCuttingIssue {
   factorId: string
   factorName: string
@@ -160,6 +165,7 @@ export interface CrossCuttingIssue {
   affectedPages: number
   totalPages: number
   topRecommendations: string[]
+  topIssues: CrossCuttingIssueDetail[]
 }
 
 export interface SitemapAuditReport {

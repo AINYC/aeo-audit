@@ -88,14 +88,20 @@ export function analyzeTechnicalSeo(context: AuditContext): AnalysisResult {
 
   if (!metaDesc) {
     findings.push({ type: 'missing', message: 'No meta description found.' })
-    recommendations.push('Add a meta description (120–160 characters) summarising the page for search snippets and AI crawlers.')
-  } else if (metaDesc.length < 70) {
-    score += 10
-    findings.push({ type: 'info', message: `Meta description is short (${metaDesc.length} chars): "${metaDesc}"` })
-    recommendations.push('Expand the meta description to 120–160 characters for better search snippet coverage.')
+    recommendations.push('Add a meta description (150–160 characters) summarising the page. Short or missing descriptions reduce click-through rates and give AI crawlers less context about the page.')
+  } else if (metaDesc.length < 120) {
+    score += 8
+    findings.push({
+      type: 'info',
+      message: `Meta description is too short (${metaDesc.length} chars; target 150–160): "${metaDesc}"`,
+    })
+    recommendations.push(
+      'Expand the meta description to 150–160 characters. Short descriptions don\'t give search engines and AI crawlers enough context about the page, which can lower click-through rates and reduce visibility.',
+    )
   } else if (metaDesc.length > 160) {
-    score += 15
+    score += 12
     findings.push({ type: 'info', message: `Meta description is long (${metaDesc.length} chars) and may be truncated in search results.` })
+    recommendations.push('Trim the meta description to 150–160 characters so it isn\'t truncated in search snippets.')
   } else {
     score += 20
     findings.push({ type: 'found', message: `Meta description present (${metaDesc.length} chars).` })

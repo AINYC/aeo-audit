@@ -97,6 +97,24 @@ export function formatSitemapMarkdown(report: SitemapAuditReport, topIssuesOnly 
     }
 
     lines.push(``)
+
+    const factorsWithIssues = report.crossCuttingIssues.filter((i) => i.topIssues.length > 0)
+    if (factorsWithIssues.length > 0) {
+      lines.push(`### Per-Issue Breakdown`)
+      lines.push(``)
+
+      for (const issue of factorsWithIssues) {
+        lines.push(`**${issue.factorName}**`)
+        lines.push(``)
+        for (const detail of issue.topIssues) {
+          lines.push(`- ${detail.recommendation} _(${detail.affectedUrls.length}/${issue.totalPages} pages)_`)
+          for (const url of detail.affectedUrls) {
+            lines.push(`  - ${url}`)
+          }
+        }
+        lines.push(``)
+      }
+    }
   }
 
   if (report.prioritizedFixes.length > 0) {
