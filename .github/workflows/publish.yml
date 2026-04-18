@@ -50,6 +50,16 @@ jobs:
         if: steps.version.outputs.changed == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to ClawHub
+        if: steps.version.outputs.changed == 'true'
+        env:
+          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          COMMIT_SUBJECT: ${{ github.event.head_commit.message }}
+        run: |
+          npx -y clawhub@0 login --token "$CLAWHUB_TOKEN" --no-browser
+          CHANGELOG="${COMMIT_SUBJECT%%$'\n'*}"
+          npx -y clawhub@0 publish skills/aeo --version "$VERSION" --changelog "$CHANGELOG"
       - name: Create git tag
         if: steps.version.outputs.changed == 'true'
         env:
