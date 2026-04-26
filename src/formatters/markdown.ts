@@ -63,7 +63,11 @@ export function formatSitemapMarkdown(report: SitemapAuditReport, topIssuesOnly 
   lines.push(``)
   lines.push(`**Sitemap:** ${report.sitemapUrl}`)
   lines.push(`**Aggregate Grade:** ${report.aggregateGrade} (${report.aggregateScore}/100)`)
-  lines.push(`**Pages:** ${report.pagesAudited} audited, ${report.pagesSkipped} skipped, ${report.pagesDiscovered} discovered`)
+  lines.push(`**Pages:** ${report.pagesAudited} audited of ${report.pagesDiscovered} discovered (${report.pagesFiltered} filtered as non-HTML, ${report.pagesTruncated} truncated by --limit ${report.effectiveLimit})`)
+  if (report.pagesTruncated > 0) {
+    lines.push(``)
+    lines.push(`> **Note:** ${report.pagesTruncated} additional pages were skipped because of the page limit. Pass \`--limit ${Math.max(report.pagesDiscovered, 9999)}\` to audit them all.`)
+  }
   lines.push(`**Audited:** ${report.auditedAt}`)
   lines.push(``)
 

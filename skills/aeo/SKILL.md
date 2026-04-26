@@ -90,8 +90,10 @@ npx @ainyc/aeo-audit@1 "<url>" --sitemap --top-issues --format json
 
 Flags:
 - `--sitemap [url]` — auto-discover `/sitemap.xml` or provide an explicit URL
-- `--limit <n>` — cap pages audited (sorted by sitemap priority)
+- `--limit <n>` — cap pages audited (default 200, sorted by sitemap priority)
 - `--top-issues` — skip per-page output, show only cross-cutting patterns
+
+Pages are audited with bounded concurrency (5 in flight) to avoid hammering the target origin.
 
 Returns:
 - Per-page scores and grades

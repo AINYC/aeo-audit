@@ -14,6 +14,8 @@ import type {
 const USER_AGENT = 'AINYC-AEO-Audit/1.0'
 const SITEMAP_TIMEOUT_MS = 10_000
 const SITEMAP_MAX_BYTES = 5 * 1024 * 1024
+const DEFAULT_LIMIT = 200
+const DEFAULT_CONCURRENCY = 5
 
 const SKIP_EXTENSIONS = new Set(['.pdf', '.txt', '.xml', '.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.mp4', '.mp3', '.zip', '.gz', '.css', '.js'])
 
@@ -131,6 +133,26 @@ async function resolveSitemapUrls(sitemapUrl: string): Promise<SitemapEntry[]> {
   return entries
 }
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let nextIndex = 0
+  const workerCount = Math.max(1, Math.min(concurrency, items.length))
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (true) {
+        const i = nextIndex++
+        if (i >= items.length) return
+        results[i] = await worker(items[i], i)
+      }
+    }),
+  )
+  return results
+}
+
 function buildCrossCuttingIssues(successPages: AuditReport[]): CrossCuttingIssue[] {
   if (successPages.length === 0) return []
 
@@ -209,57 +231,78 @@ export async function runSitemapAudit(rawUrl: string, options: SitemapAuditOptio
   const sitemapUrl = options.sitemapUrl || `${origin}/sitemap.xml`
 
   // Fetch and parse sitemap
-  let entries = await resolveSitemapUrls(sitemapUrl)
+  const allEntries = await resolveSitemapUrls(sitemapUrl)
+  const discovered = allEntries.length
 
   // Filter to HTML content pages
-  const allCount = entries.length
-  entries = entries.filter((e) => !shouldSkipUrl(e.loc))
+  const eligible = allEntries.filter((e) => !shouldSkipUrl(e.loc))
+  const filtered = discovered - eligible.length
 
   // Sort by priority (highest first) if priorities exist
-  entries.sort((a, b) => (b.priority ?? 0.5) - (a.priority ?? 0.5))
+  eligible.sort((a, b) => (b.priority ?? 0.5) - (a.priority ?? 0.5))
 
-  // Apply limit
-  if (options.limit && options.limit > 0) {
-    entries = entries.slice(0, options.limit)
-  }
+  // Apply limit (default 200 when not specified — large sitemaps are common and
+  // a full sweep is rarely what the user wants).
+  const effectiveLimit = options.limit && options.limit > 0 ? options.limit : DEFAULT_LIMIT
+  const entries = eligible.slice(0, effectiveLimit)
+  const truncated = eligible.length - entries.length
 
   if (entries.length === 0) {
     throw new AeoAuditError('BAD_INPUT', 'No auditable URLs found in sitemap.')
   }
 
-  const skipped = allCount - entries.length
+  options.onPlan?.({
+    discovered,
+    filtered,
+    truncated,
+    willAudit: entries.length,
+    effectiveLimit,
+  })
+
   const auditOptions: RunAeoAuditOptions = {
     factors: options.factors,
     includeGeo: options.includeGeo,
   }
 
-  // Audit each page (sequentially to avoid hammering the target)
-  const pageResults: SitemapPageResult[] = []
-  const successReports: AuditReport[] = []
+  // Audit pages with bounded concurrency: 5 workers is a polite ceiling for one
+  // origin while giving a meaningful speedup over fully sequential.
+  const settled = await mapWithConcurrency(
+    entries,
+    DEFAULT_CONCURRENCY,
+    async (entry): Promise<{ pageResult: SitemapPageResult; report: AuditReport | null }> => {
+      try {
+        const report = await runAeoAudit(entry.loc, auditOptions)
+        return {
+          pageResult: {
+            url: report.finalUrl,
+            overallScore: report.overallScore,
+            overallGrade: report.overallGrade,
+            status: 'success',
+            factors: report.factors,
+            metadata: report.metadata,
+          },
+          report,
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        return {
+          pageResult: {
+            url: entry.loc,
+            overallScore: 0,
+            overallGrade: 'F',
+            status: 'error',
+            error: message,
+          },
+          report: null,
+        }
+      }
+    },
+  )
 
-  for (const entry of entries) {
-    try {
-      const report = await runAeoAudit(entry.loc, auditOptions)
-      successReports.push(report)
-      pageResults.push({
-        url: report.finalUrl,
-        overallScore: report.overallScore,
-        overallGrade: report.overallGrade,
-        status: 'success',
-        factors: report.factors,
-        metadata: report.metadata,
-      })
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      pageResults.push({
-        url: entry.loc,
-        overallScore: 0,
-        overallGrade: 'F',
-        status: 'error',
-        error: message,
-      })
-    }
-  }
+  const pageResults: SitemapPageResult[] = settled.map((s) => s.pageResult)
+  const successReports: AuditReport[] = settled
+    .map((s) => s.report)
+    .filter((r): r is AuditReport => r !== null)
 
   // Calculate aggregate score from successful audits
   const successScores = pageResults.filter((p) => p.status === 'success').map((p) => p.overallScore)
@@ -273,9 +316,12 @@ export async function runSitemapAudit(rawUrl: string, options: SitemapAuditOptio
   return {
     sitemapUrl,
     auditedAt: new Date().toISOString(),
-    pagesDiscovered: allCount,
+    pagesDiscovered: discovered,
     pagesAudited: entries.length,
-    pagesSkipped: skipped,
+    pagesSkipped: filtered + truncated,
+    pagesFiltered: filtered,
+    pagesTruncated: truncated,
+    effectiveLimit,
     aggregateScore,
     aggregateGrade: scoreToGrade(aggregateScore),
     pages: pageResults,
@@ -284,4 +330,4 @@ export async function runSitemapAudit(rawUrl: string, options: SitemapAuditOptio
   }
 }
 
-export { parseSitemapXml, shouldSkipUrl, buildCrossCuttingIssues }
+export { parseSitemapXml, shouldSkipUrl, buildCrossCuttingIssues, mapWithConcurrency }

@@ -99,7 +99,7 @@ Options:
   --include-geo       Include optional geographic signals factor
   --include-agent-skills  Include optional agent skill exposure factor (Schema.org Action, MCP, form affordances)
   --sitemap [url]     Audit all pages from sitemap (auto-discovers /sitemap.xml or use explicit URL)
-  --limit <n>         Max pages to audit in sitemap mode (sorted by sitemap priority)
+  --limit <n>         Max pages to audit in sitemap mode (default 200, sorted by sitemap priority)
   --top-issues        In sitemap mode, skip per-page output and show only cross-cutting issues
   -h, --help          Show this help message
 
@@ -142,6 +142,13 @@ export async function main(argv: string[] = process.argv): Promise<number> {
         sitemapUrl: args.sitemapUrl ?? undefined,
         limit: args.limit ?? undefined,
         topIssuesOnly: args.topIssues,
+        onPlan: (plan) => {
+          if (plan.truncated > 0) {
+            console.error(
+              `Notice: sitemap has ${plan.discovered} URLs; auditing top ${plan.willAudit} by priority (--limit ${plan.effectiveLimit}). ${plan.truncated} pages skipped. Pass --limit ${Math.max(plan.discovered, 9999)} to audit all.`,
+            )
+          }
+        },
       }
 
       const report = await runSitemapAudit(args.url, options)

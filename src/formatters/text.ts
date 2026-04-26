@@ -82,7 +82,10 @@ export function formatSitemapText(report: SitemapAuditReport, topIssuesOnly = fa
   lines.push(`${DIM}${report.sitemapUrl}${RESET}`)
   lines.push(``)
   lines.push(`  ${BOLD}Aggregate Grade:${RESET} ${gc}${BOLD}${report.aggregateGrade}${RESET}  ${bar(report.aggregateScore, 30)} ${report.aggregateScore}/100`)
-  lines.push(`  ${DIM}${report.pagesAudited} pages audited, ${report.pagesSkipped} skipped, ${report.pagesDiscovered} discovered${RESET}`)
+  lines.push(`  ${DIM}${report.pagesAudited} pages audited of ${report.pagesDiscovered} discovered (${report.pagesFiltered} filtered, ${report.pagesTruncated} truncated by --limit ${report.effectiveLimit})${RESET}`)
+  if (report.pagesTruncated > 0) {
+    lines.push(`  ${DIM}Note: ${report.pagesTruncated} additional pages skipped by --limit. Pass --limit ${Math.max(report.pagesDiscovered, 9999)} to audit them all.${RESET}`)
+  }
   lines.push(``)
 
   if (!topIssuesOnly) {
