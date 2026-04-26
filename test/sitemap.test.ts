@@ -1,6 +1,6 @@
 import { test, expect } from 'vitest'
 
-import { parseSitemapXml, shouldSkipUrl } from '../src/sitemap.js'
+import { mapWithConcurrency, parseSitemapXml, shouldSkipUrl } from '../src/sitemap.js'
 
 test('parseSitemapXml extracts loc and priority from url blocks', () => {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -60,4 +60,42 @@ test('shouldSkipUrl allows HTML content pages', () => {
   expect(shouldSkipUrl('https://example.com/blog/post-1')).toBe(false)
   expect(shouldSkipUrl('https://example.com/page.html')).toBe(false)
   expect(shouldSkipUrl('https://example.com/page.htm')).toBe(false)
+})
+
+test('mapWithConcurrency preserves input order and caps in-flight workers', async () => {
+  const items = Array.from({ length: 20 }, (_, i) => i)
+  let inFlight = 0
+  let peakInFlight = 0
+
+  const results = await mapWithConcurrency(items, 5, async (item) => {
+    inFlight += 1
+    peakInFlight = Math.max(peakInFlight, inFlight)
+    // Yield to the event loop a few times so workers actually overlap.
+    await new Promise((resolve) => setTimeout(resolve, 1))
+    inFlight -= 1
+    return item * 2
+  })
+
+  expect(results).toEqual(items.map((i) => i * 2))
+  expect(peakInFlight).toBeLessThanOrEqual(5)
+  expect(peakInFlight).toBeGreaterThan(1)
+})
+
+test('mapWithConcurrency handles empty input', async () => {
+  const results = await mapWithConcurrency<number, number>([], 5, async (n) => n)
+  expect(results).toEqual([])
+})
+
+test('mapWithConcurrency caps workers to item count when items < concurrency', async () => {
+  let peakInFlight = 0
+  let inFlight = 0
+  const results = await mapWithConcurrency([1, 2], 10, async (n) => {
+    inFlight += 1
+    peakInFlight = Math.max(peakInFlight, inFlight)
+    await new Promise((resolve) => setTimeout(resolve, 1))
+    inFlight -= 1
+    return n
+  })
+  expect(results).toEqual([1, 2])
+  expect(peakInFlight).toBeLessThanOrEqual(2)
 })

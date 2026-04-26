@@ -174,6 +174,9 @@ export interface SitemapAuditReport {
   pagesDiscovered: number
   pagesAudited: number
   pagesSkipped: number
+  pagesFiltered: number
+  pagesTruncated: number
+  effectiveLimit: number
   aggregateScore: number
   aggregateGrade: string
   pages: SitemapPageResult[]
@@ -181,8 +184,17 @@ export interface SitemapAuditReport {
   prioritizedFixes: string[]
 }
 
+export interface SitemapAuditPlan {
+  discovered: number
+  filtered: number
+  truncated: number
+  willAudit: number
+  effectiveLimit: number
+}
+
 export interface SitemapAuditOptions extends RunAeoAuditOptions {
   sitemapUrl?: string
   limit?: number
   topIssuesOnly?: boolean
+  onPlan?: (plan: SitemapAuditPlan) => void
 }
