@@ -62,6 +62,23 @@ test/                # Unit and integration tests
 - Findings types: `found`, `missing`, `info`, `timeout`, `unreachable`
 - Unused vars starting with `_` are ignored by ESLint
 
+## Documentation
+
+Any change to user-visible CLI surface must update **all three** of these in the same change:
+
+1. `printHelp()` in `src/cli.ts` — Options list **and** Examples block
+2. `README.md` — the `## CLI Usage` section (flags, examples, and any defaults)
+3. `skills/aeo/SKILL.md` — Examples and the relevant mode section (e.g. `### Sitemap Mode`)
+
+This applies to:
+
+- Adding, renaming, or removing a flag
+- Changing a default value (e.g. sitemap `--limit` default of 200) — the default must be stated in the help string, the README, and SKILL.md
+- Adding a new CLI mode (e.g. `--sitemap`) — document flags, defaults, exit-code behavior, and an example invocation in all three places
+- Changing exit-code semantics or output format options
+
+Before opening a PR that touches `src/cli.ts`, grep the README and SKILL.md for the affected flag name to confirm everything still matches.
+
 ## Versioning
 
 Follows semver. Bump `version` in `package.json` on every change that ships:
