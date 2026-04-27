@@ -71,9 +71,45 @@ npx @ainyc/aeo-audit https://example.com --factors structured-data,faq-content
 
 # Include geographic signals
 npx @ainyc/aeo-audit https://example.com --include-geo
+
+# Include optional agent skill exposure factor
+npx @ainyc/aeo-audit https://example.com --include-agent-skills
 ```
 
-Exit code `0` for score >= 70, `1` for < 70 (CI-friendly).
+### Sitemap Mode
+
+Audit every page discovered from the site's sitemap with bounded concurrency (5 in flight):
+
+```bash
+# Auto-discover /sitemap.xml
+npx @ainyc/aeo-audit https://example.com --sitemap
+
+# Provide an explicit sitemap URL
+npx @ainyc/aeo-audit https://example.com --sitemap https://example.com/sitemap.xml
+
+# Cap the number of pages (default 200, sorted by sitemap priority)
+npx @ainyc/aeo-audit https://example.com --sitemap --limit 50
+
+# Skip per-page output and show only cross-cutting issues
+npx @ainyc/aeo-audit https://example.com --sitemap --top-issues
+```
+
+When the sitemap has more URLs than `--limit`, the run audits the highest-priority pages and prints a notice to stderr listing how many were skipped and how to audit them all.
+
+### Flag Reference
+
+| Flag | Description |
+|------|-------------|
+| `--format <type>` | Output format: `text` (default), `json`, `markdown` |
+| `--factors <list>` | Comma-separated factor IDs to run (runs all if omitted) |
+| `--include-geo` | Include the optional geographic signals factor |
+| `--include-agent-skills` | Include the optional agent skill exposure factor |
+| `--sitemap [url]` | Audit all pages from the sitemap (auto-discovers `/sitemap.xml` or uses an explicit URL) |
+| `--limit <n>` | Max pages to audit in sitemap mode (default 200, sorted by sitemap priority) |
+| `--top-issues` | In sitemap mode, skip per-page output and show only cross-cutting issues |
+| `-h`, `--help` | Show the help message |
+
+Exit code `0` for score >= 70, `1` for < 70 (CI-friendly). In sitemap mode the exit code is based on the aggregate score.
 
 ## Programmatic Usage
 

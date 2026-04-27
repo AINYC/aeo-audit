@@ -94,24 +94,29 @@ function printHelp() {
 Usage: aeo-audit <url> [options]
 
 Options:
-  --format <type>     Output format: text (default), json, markdown
-  --factors <list>    Comma-separated factor IDs to run (runs all if omitted)
-  --include-geo       Include optional geographic signals factor
+  --format <type>         Output format: text (default), json, markdown
+  --factors <list>        Comma-separated factor IDs to run (runs all if omitted)
+  --include-geo           Include optional geographic signals factor
   --include-agent-skills  Include optional agent skill exposure factor (Schema.org Action, MCP, form affordances)
-  --sitemap [url]     Audit all pages from sitemap (auto-discovers /sitemap.xml or use explicit URL)
-  --limit <n>         Max pages to audit in sitemap mode (default 200, sorted by sitemap priority)
-  --top-issues        In sitemap mode, skip per-page output and show only cross-cutting issues
-  -h, --help          Show this help message
+  --sitemap [url]         Audit all pages from sitemap (auto-discovers /sitemap.xml or use explicit URL).
+                          Pages are fetched with bounded concurrency (5 in flight).
+  --limit <n>             Max pages to audit in sitemap mode (default 200, sorted by sitemap priority).
+                          When the sitemap exceeds the limit, a notice is printed to stderr.
+  --top-issues            In sitemap mode, skip per-page output and show only cross-cutting issues
+  -h, --help              Show this help message
 
 Examples:
   aeo-audit https://example.com
   aeo-audit https://example.com --format json
   aeo-audit https://example.com --factors structured-data,faq-content
   aeo-audit https://example.com --include-geo
+  aeo-audit https://example.com --include-agent-skills
   aeo-audit https://example.com --sitemap
   aeo-audit https://example.com --sitemap https://example.com/sitemap.xml
   aeo-audit https://example.com --sitemap --limit 10
   aeo-audit https://example.com --sitemap --top-issues
+
+Exit code: 0 when score >= 70, 1 otherwise. In sitemap mode, the aggregate score is used.
 `)
 }
 
