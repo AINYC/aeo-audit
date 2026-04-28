@@ -1,4 +1,12 @@
-import type { AuditReport, SitemapAuditReport } from '../types.js'
+import type {
+  AuditReport,
+  BatchDetectionEntry,
+  BatchPlatformDetectionReport,
+  DetectedPlatform,
+  PlatformCategory,
+  PlatformDetectionReport,
+  SitemapAuditReport,
+} from '../types.js'
 
 export function formatMarkdown(report: AuditReport): string {
   const lines = []
@@ -129,6 +137,129 @@ export function formatSitemapMarkdown(report: SitemapAuditReport, topIssuesOnly 
     }
     lines.push(``)
   }
+
+  return lines.join('\n')
+}
+
+const PLATFORM_CATEGORY_LABEL: Record<PlatformCategory, string> = {
+  cms: 'CMS',
+  'site-builder': 'Site Builder',
+  ecommerce: 'E-commerce',
+  framework: 'Framework',
+  ssg: 'Static Site Generator',
+  hosting: 'Hosting / CDN',
+}
+
+const PLATFORM_CATEGORY_ORDER: PlatformCategory[] = [
+  'cms',
+  'site-builder',
+  'ecommerce',
+  'framework',
+  'ssg',
+  'hosting',
+]
+
+export function formatPlatformMarkdown(report: PlatformDetectionReport): string {
+  const lines: string[] = []
+
+  lines.push(`# Platform Detection`)
+  lines.push(``)
+  lines.push(`**URL:** ${report.finalUrl}`)
+  lines.push(`**Detected at:** ${report.detectedAt}`)
+  lines.push(`**Fetch time:** ${report.fetchTimeMs}ms`)
+  lines.push(``)
+
+  if (report.detected.length === 0) {
+    lines.push(`No platform fingerprints matched. The site appears to be **custom-built** (or uses an unrecognized stack).`)
+    lines.push(``)
+    if (report.rawSignals.generator || report.rawSignals.xPoweredBy || report.rawSignals.server) {
+      lines.push(`## Raw signals`)
+      lines.push(``)
+      if (report.rawSignals.generator) lines.push(`- **generator:** ${report.rawSignals.generator}`)
+      if (report.rawSignals.xPoweredBy) lines.push(`- **x-powered-by:** ${report.rawSignals.xPoweredBy}`)
+      if (report.rawSignals.server) lines.push(`- **server:** ${report.rawSignals.server}`)
+      lines.push(``)
+    }
+    return lines.join('\n')
+  }
+
+  if (report.isCustom) {
+    lines.push(`> The site looks **custom-built** — no CMS, site-builder, or e-commerce platform was identified. Framework, SSG, or hosting fingerprints (below) are still informative.`)
+    lines.push(``)
+  }
+
+  const byCategory = new Map<PlatformCategory, DetectedPlatform[]>()
+  for (const p of report.detected) {
+    const list = byCategory.get(p.category) ?? []
+    list.push(p)
+    byCategory.set(p.category, list)
+  }
+
+  for (const category of PLATFORM_CATEGORY_ORDER) {
+    const platforms = byCategory.get(category)
+    if (!platforms || platforms.length === 0) continue
+
+    lines.push(`## ${PLATFORM_CATEGORY_LABEL[category]}`)
+    lines.push(``)
+    for (const p of platforms) {
+      const versionStr = p.version ? ` v${p.version}` : ''
+      lines.push(`### ${p.name}${versionStr}`)
+      lines.push(``)
+      lines.push(`- **Confidence:** ${p.confidence} (${p.confidenceScore}/100)`)
+      lines.push(`- **Evidence:**`)
+      for (const ev of p.evidence) {
+        lines.push(`  - ${ev}`)
+      }
+      lines.push(``)
+    }
+  }
+
+  return lines.join('\n')
+}
+
+function summarizePlatformsInline(platforms: DetectedPlatform[]): string {
+  if (platforms.length === 0) return '_no fingerprints matched_'
+  return platforms
+    .map((p) => {
+      const v = p.version ? ` v${p.version}` : ''
+      return `**${p.name}${v}** (${PLATFORM_CATEGORY_LABEL[p.category]}, ${p.confidence})`
+    })
+    .join(', ')
+}
+
+function batchEntryRow(entry: BatchDetectionEntry): string {
+  if (entry.status === 'error') {
+    return `| ${entry.url} | error | ${entry.error ?? 'unknown error'} |`
+  }
+  const platforms = entry.detected ?? []
+  const summary = summarizePlatformsInline(platforms)
+  const customSuffix = entry.isCustom ? ' _[custom-built]_' : ''
+  return `| ${entry.url} | success | ${summary}${customSuffix} |`
+}
+
+export function formatBatchPlatformMarkdown(report: BatchPlatformDetectionReport): string {
+  const lines: string[] = []
+
+  lines.push(`# Platform Detection (Batch)`)
+  lines.push(``)
+  lines.push(`**Total URLs:** ${report.totalUrls}`)
+  lines.push(`**Successful:** ${report.successful}`)
+  lines.push(`**Failed:** ${report.failed}`)
+  lines.push(`**Detected at:** ${report.detectedAt}`)
+  lines.push(`**Total fetch time:** ${report.totalFetchTimeMs}ms`)
+  lines.push(``)
+
+  if (report.results.length === 0) {
+    lines.push(`_No URLs to process._`)
+    return lines.join('\n')
+  }
+
+  lines.push(`| URL | Status | Platforms |`)
+  lines.push(`|-----|--------|-----------|`)
+  for (const entry of report.results) {
+    lines.push(batchEntryRow(entry))
+  }
+  lines.push(``)
 
   return lines.join('\n')
 }

@@ -22,7 +22,16 @@ import { FACTOR_DEFINITIONS, OPTIONAL_FACTOR_DEFINITIONS, scoreFactors } from '.
 import type { Analyzer, AuditContext, AuditReport, RunAeoAuditOptions, ScoredFactor } from './types.js'
 
 export { runSitemapAudit } from './sitemap.js'
+export { detectPlatform, detectPlatformBatch } from './detect-platform.js'
 export type { SitemapAuditReport, SitemapAuditOptions } from './types.js'
+export type {
+  BatchDetectionEntry,
+  BatchPlatformDetectionReport,
+  DetectedPlatform,
+  PlatformCategory,
+  PlatformConfidence,
+  PlatformDetectionReport,
+} from './types.js'
 
 const ANALYZER_BY_ID: Record<string, Analyzer> = {
   'structured-data': analyzeStructuredData,
