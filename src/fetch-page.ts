@@ -462,7 +462,11 @@ async function fetchAuxiliaryFile(origin: string, spec: AuxiliarySpec): Promise<
   }
 }
 
-export async function fetchPage(rawUrl: string): Promise<FetchedPage> {
+export interface FetchPageOptions {
+  skipAuxiliary?: boolean
+}
+
+export async function fetchPage(rawUrl: string, options: FetchPageOptions = {}): Promise<FetchedPage> {
   const startedAt = Date.now()
   const normalizedUrl = normalizeTargetUrl(rawUrl)
 
@@ -493,13 +497,17 @@ export async function fetchPage(rawUrl: string): Promise<FetchedPage> {
   }
 
   const auxiliaryFetchStartedAt = Date.now()
-  const origin = new URL(finalUrl).origin
-  const auxiliaryEntries = await Promise.all(
-    AUXILIARY_SPECS.map(async (spec): Promise<[keyof AuxiliaryResources, AuxiliaryResource]> => {
-      const result = await fetchAuxiliaryFile(origin, spec)
-      return [spec.key, result]
-    }),
-  )
+  let auxiliary: Record<string, AuxiliaryResource> = {}
+  if (!options.skipAuxiliary) {
+    const origin = new URL(finalUrl).origin
+    const auxiliaryEntries = await Promise.all(
+      AUXILIARY_SPECS.map(async (spec): Promise<[keyof AuxiliaryResources, AuxiliaryResource]> => {
+        const result = await fetchAuxiliaryFile(origin, spec)
+        return [spec.key, result]
+      }),
+    )
+    auxiliary = Object.fromEntries(auxiliaryEntries) as Record<string, AuxiliaryResource>
+  }
 
   return {
     inputUrl: normalizedUrl.toString(),
@@ -507,7 +515,7 @@ export async function fetchPage(rawUrl: string): Promise<FetchedPage> {
     html,
     headers: Object.fromEntries(response.headers.entries()),
     redirectChain,
-    auxiliary: Object.fromEntries(auxiliaryEntries) as Record<string, AuxiliaryResource>,
+    auxiliary,
     timings: {
       fetchTimeMs: Date.now() - startedAt,
       mainFetchMs: auxiliaryFetchStartedAt - startedAt,

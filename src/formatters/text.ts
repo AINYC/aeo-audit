@@ -6,7 +6,17 @@ const YELLOW = '\x1b[33m'
 const RED = '\x1b[31m'
 const CYAN = '\x1b[36m'
 
-import type { AuditReport, ScoredFactor, SitemapAuditReport } from '../types.js'
+import type {
+  AuditReport,
+  BatchDetectionEntry,
+  BatchPlatformDetectionReport,
+  DetectedPlatform,
+  PlatformCategory,
+  PlatformConfidence,
+  PlatformDetectionReport,
+  ScoredFactor,
+  SitemapAuditReport,
+} from '../types.js'
 
 function gradeColor(grade: string): string {
   if (grade.startsWith('A')) return GREEN
@@ -140,4 +150,131 @@ export function formatSitemapText(report: SitemapAuditReport, topIssuesOnly = fa
   lines.push(`${DIM}${report.auditedAt}${RESET}`)
 
   return lines.join('\n')
+}
+
+const CATEGORY_LABEL: Record<PlatformCategory, string> = {
+  cms: 'CMS',
+  'site-builder': 'Site Builder',
+  ecommerce: 'E-commerce',
+  framework: 'Framework',
+  ssg: 'Static Site Generator',
+  hosting: 'Hosting / CDN',
+}
+
+const CATEGORY_ORDER: PlatformCategory[] = ['cms', 'site-builder', 'ecommerce', 'framework', 'ssg', 'hosting']
+
+function confidenceColor(confidence: PlatformConfidence): string {
+  if (confidence === 'high') return GREEN
+  if (confidence === 'medium') return YELLOW
+  return DIM
+}
+
+export function formatPlatformText(report: PlatformDetectionReport): string {
+  const lines: string[] = []
+
+  lines.push(``)
+  lines.push(`${BOLD}Platform Detection${RESET}`)
+  lines.push(`${DIM}${report.finalUrl}${RESET}`)
+  lines.push(``)
+
+  if (report.detected.length === 0) {
+    lines.push(`  ${DIM}No platform fingerprints matched. The site appears to be ${BOLD}custom-built${RESET}${DIM} (or uses an unrecognized stack).${RESET}`)
+    if (report.rawSignals.generator || report.rawSignals.xPoweredBy || report.rawSignals.server) {
+      lines.push(``)
+      lines.push(`${BOLD}Raw signals${RESET}`)
+      if (report.rawSignals.generator) lines.push(`  generator: ${report.rawSignals.generator}`)
+      if (report.rawSignals.xPoweredBy) lines.push(`  x-powered-by: ${report.rawSignals.xPoweredBy}`)
+      if (report.rawSignals.server) lines.push(`  server: ${report.rawSignals.server}`)
+    }
+    lines.push(``)
+    lines.push(`${DIM}Fetched in ${report.fetchTimeMs}ms | ${report.detectedAt}${RESET}`)
+    return lines.join('\n')
+  }
+
+  const byCategory = new Map<PlatformCategory, DetectedPlatform[]>()
+  for (const platform of report.detected) {
+    const list = byCategory.get(platform.category) ?? []
+    list.push(platform)
+    byCategory.set(platform.category, list)
+  }
+
+  if (report.isCustom) {
+    lines.push(`  ${BOLD}Custom-built${RESET} ${DIM}(no CMS, site-builder, or e-commerce platform detected)${RESET}`)
+    lines.push(``)
+  }
+
+  for (const category of CATEGORY_ORDER) {
+    const platforms = byCategory.get(category)
+    if (!platforms || platforms.length === 0) continue
+
+    lines.push(`${BOLD}${CATEGORY_LABEL[category]}${RESET}`)
+    for (const p of platforms) {
+      const cc = confidenceColor(p.confidence)
+      const versionStr = p.version ? ` ${DIM}v${p.version}${RESET}` : ''
+      lines.push(`  ${cc}●${RESET} ${BOLD}${p.name}${RESET}${versionStr} ${DIM}(${p.confidence}, ${p.confidenceScore}/100)${RESET}`)
+      for (const ev of p.evidence.slice(0, 3)) {
+        lines.push(`      ${DIM}• ${ev}${RESET}`)
+      }
+      if (p.evidence.length > 3) {
+        lines.push(`      ${DIM}• …and ${p.evidence.length - 3} more signal(s)${RESET}`)
+      }
+    }
+    lines.push(``)
+  }
+
+  lines.push(`${DIM}Fetched in ${report.fetchTimeMs}ms | ${report.detectedAt}${RESET}`)
+
+  return lines.join('\n')
+}
+
+function summarizePlatforms(platforms: DetectedPlatform[]): string {
+  if (platforms.length === 0) return `${DIM}no fingerprints matched${RESET}`
+  return platforms
+    .map((p) => {
+      const cc = confidenceColor(p.confidence)
+      const v = p.version ? ` v${p.version}` : ''
+      return `${cc}${p.name}${v}${RESET} ${DIM}(${CATEGORY_LABEL[p.category]}, ${p.confidence})${RESET}`
+    })
+    .join(', ')
+}
+
+export function formatBatchPlatformText(report: BatchPlatformDetectionReport): string {
+  const lines: string[] = []
+
+  lines.push(``)
+  lines.push(`${BOLD}Platform Detection (Batch)${RESET}`)
+  lines.push(
+    `${DIM}${report.totalUrls} URL(s): ${GREEN}${report.successful} success${RESET}${DIM}, ${RED}${report.failed} failed${RESET}${DIM} in ${report.totalFetchTimeMs}ms${RESET}`,
+  )
+  lines.push(``)
+
+  if (report.results.length === 0) {
+    lines.push(`  ${DIM}No URLs to process.${RESET}`)
+    return lines.join('\n')
+  }
+
+  const urlWidth = Math.min(60, Math.max(...report.results.map((r) => r.url.length)))
+
+  for (const entry of report.results) {
+    lines.push(formatBatchEntry(entry, urlWidth))
+  }
+
+  lines.push(``)
+  lines.push(`${DIM}${report.detectedAt}${RESET}`)
+
+  return lines.join('\n')
+}
+
+function formatBatchEntry(entry: BatchDetectionEntry, urlWidth: number): string {
+  const urlDisplay = entry.url.length > urlWidth ? entry.url.slice(0, urlWidth - 1) + '…' : entry.url.padEnd(urlWidth)
+
+  if (entry.status === 'error') {
+    return `  ${RED}✗${RESET} ${urlDisplay}  ${RED}error:${RESET} ${entry.error ?? 'unknown error'}`
+  }
+
+  const platforms = entry.detected ?? []
+  const customMarker = entry.isCustom ? ` ${DIM}[custom-built]${RESET}` : ''
+  const summary = summarizePlatforms(platforms)
+  const icon = platforms.length > 0 ? `${GREEN}✓${RESET}` : `${YELLOW}~${RESET}`
+  return `  ${icon} ${urlDisplay}  ${summary}${customMarker}`
 }

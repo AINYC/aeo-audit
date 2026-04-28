@@ -1,11 +1,33 @@
+import { readFile } from 'node:fs/promises'
 import { runAeoAudit } from './index.js'
 import { runSitemapAudit } from './sitemap.js'
+import { detectPlatform, detectPlatformBatch } from './detect-platform.js'
 import { isAeoAuditError } from './errors.js'
-import { formatJson } from './formatters/json.js'
-import { formatSitemapJson } from './formatters/json.js'
-import { formatMarkdown, formatSitemapMarkdown } from './formatters/markdown.js'
-import { formatText, formatSitemapText } from './formatters/text.js'
-import type { AuditReport, SitemapAuditReport, SitemapAuditOptions } from './types.js'
+import {
+  formatBatchPlatformJson,
+  formatJson,
+  formatPlatformJson,
+  formatSitemapJson,
+} from './formatters/json.js'
+import {
+  formatBatchPlatformMarkdown,
+  formatMarkdown,
+  formatPlatformMarkdown,
+  formatSitemapMarkdown,
+} from './formatters/markdown.js'
+import {
+  formatBatchPlatformText,
+  formatPlatformText,
+  formatSitemapText,
+  formatText,
+} from './formatters/text.js'
+import type {
+  BatchPlatformDetectionReport,
+  PlatformConfidence,
+  PlatformDetectionReport,
+  SitemapAuditOptions,
+  SitemapAuditReport,
+} from './types.js'
 
 const FORMATTERS = {
   json: formatJson,
@@ -17,6 +39,18 @@ const SITEMAP_FORMATTERS = {
   json: (report: SitemapAuditReport, _topIssuesOnly: boolean) => formatSitemapJson(report),
   markdown: (report: SitemapAuditReport, topIssuesOnly: boolean) => formatSitemapMarkdown(report, topIssuesOnly),
   text: (report: SitemapAuditReport, topIssuesOnly: boolean) => formatSitemapText(report, topIssuesOnly),
+}
+
+const PLATFORM_FORMATTERS = {
+  json: (report: PlatformDetectionReport) => formatPlatformJson(report),
+  markdown: (report: PlatformDetectionReport) => formatPlatformMarkdown(report),
+  text: (report: PlatformDetectionReport) => formatPlatformText(report),
+}
+
+const BATCH_PLATFORM_FORMATTERS = {
+  json: (report: BatchPlatformDetectionReport) => formatBatchPlatformJson(report),
+  markdown: (report: BatchPlatformDetectionReport) => formatBatchPlatformMarkdown(report),
+  text: (report: BatchPlatformDetectionReport) => formatBatchPlatformText(report),
 }
 
 type FormatterName = keyof typeof FORMATTERS
@@ -32,6 +66,10 @@ interface ParsedArgs {
   sitemapUrl: string | null
   limit: number | null
   topIssues: boolean
+  detectPlatform: boolean
+  minConfidence: PlatformConfidence | null
+  urls: string | null
+  concurrency: number | null
 }
 
 function isFormatterName(value: string): value is FormatterName {
@@ -51,6 +89,10 @@ function parseArgs(argv: string[]): ParsedArgs {
     sitemapUrl: null,
     limit: null,
     topIssues: false,
+    detectPlatform: false,
+    minConfidence: null,
+    urls: null,
+    concurrency: null,
   }
 
   for (let i = 0; i < args.length; i += 1) {
@@ -79,6 +121,23 @@ function parseArgs(argv: string[]): ParsedArgs {
       i += 1
     } else if (args[i] === '--top-issues') {
       result.topIssues = true
+    } else if (args[i] === '--detect-platform') {
+      result.detectPlatform = true
+    } else if (args[i] === '--min-confidence' && args[i + 1]) {
+      const value = args[i + 1]
+      if (value === 'high' || value === 'medium' || value === 'low') {
+        result.minConfidence = value
+      }
+      i += 1
+    } else if (args[i] === '--urls' && args[i + 1]) {
+      result.urls = args[i + 1]
+      i += 1
+    } else if (args[i] === '--concurrency' && args[i + 1]) {
+      const num = parseInt(args[i + 1], 10)
+      if (Number.isFinite(num) && num > 0) {
+        result.concurrency = num
+      }
+      i += 1
     } else if (args[i] === '--help' || args[i] === '-h') {
       result.help = true
     } else if (!args[i].startsWith('-')) {
@@ -87,6 +146,39 @@ function parseArgs(argv: string[]): ParsedArgs {
   }
 
   return result
+}
+
+export function parseUrlList(text: string): string[] {
+  const urls: string[] = []
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim()
+    if (line.length === 0 || line.startsWith('#')) continue
+    // Allow comma-separated values on a single line too.
+    for (const part of line.split(',')) {
+      const candidate = part.trim()
+      if (candidate.length > 0) urls.push(candidate)
+    }
+  }
+  return urls
+}
+
+async function readStdin(): Promise<string> {
+  const chunks: Buffer[] = []
+  for await (const chunk of process.stdin) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+  }
+  return Buffer.concat(chunks).toString('utf-8')
+}
+
+async function resolveUrls(spec: string): Promise<string[]> {
+  if (spec === '-') {
+    return parseUrlList(await readStdin())
+  }
+  if (spec.startsWith('http://') || spec.startsWith('https://')) {
+    return parseUrlList(spec)
+  }
+  const text = await readFile(spec, 'utf-8')
+  return parseUrlList(text)
 }
 
 function printHelp() {
@@ -103,6 +195,14 @@ Options:
   --limit <n>             Max pages to audit in sitemap mode (default 200, sorted by sitemap priority).
                           When the sitemap exceeds the limit, a notice is printed to stderr.
   --top-issues            In sitemap mode, skip per-page output and show only cross-cutting issues
+  --detect-platform       Detect what platform/CMS/framework the site is built on (WordPress,
+                          Webflow, Shopify, Next.js, etc.) instead of running a full audit.
+  --urls <src>            In --detect-platform mode, run on multiple URLs. <src> can be a path
+                          to a text file (one URL per line, # comments allowed), a comma-separated
+                          list (e.g. https://a.com,https://b.com), or - to read from stdin.
+  --concurrency <n>       In --detect-platform batch mode, max in-flight fetches (default 5).
+  --min-confidence <lvl>  In platform-detect mode, only report platforms at or above this
+                          confidence level: low (default), medium, high.
   -h, --help              Show this help message
 
 Examples:
@@ -115,8 +215,16 @@ Examples:
   aeo-audit https://example.com --sitemap https://example.com/sitemap.xml
   aeo-audit https://example.com --sitemap --limit 10
   aeo-audit https://example.com --sitemap --top-issues
+  aeo-audit https://example.com --detect-platform
+  aeo-audit https://example.com --detect-platform --format json
+  aeo-audit https://example.com --detect-platform --min-confidence medium
+  aeo-audit --detect-platform --urls urls.txt
+  aeo-audit --detect-platform --urls https://a.com,https://b.com --format json
+  cat urls.txt | aeo-audit --detect-platform --urls -
 
 Exit code: 0 when score >= 70, 1 otherwise. In sitemap mode, the aggregate score is used.
+In --detect-platform mode, exit code is 0 if any platform is detected, 1 otherwise.
+In --detect-platform batch mode, exit code is 0 if at least one URL succeeded, 1 otherwise.
 `)
 }
 
@@ -128,17 +236,57 @@ export async function main(argv: string[] = process.argv): Promise<number> {
     return 0
   }
 
-  if (!args.url) {
-    console.error('Error: URL is required. Run with --help for usage.')
-    return 1
-  }
-
   if (!isFormatterName(args.format)) {
     console.error(`Error: Unknown format "${args.format}". Use: text, json, markdown`)
     return 1
   }
 
+  if (args.urls && !args.detectPlatform) {
+    console.error('Error: --urls is only supported with --detect-platform.')
+    return 1
+  }
+
   try {
+    if (args.detectPlatform) {
+      if (args.urls) {
+        if (args.url) {
+          console.error('Error: cannot combine a positional URL with --urls. Use one or the other.')
+          return 1
+        }
+
+        const urls = await resolveUrls(args.urls)
+        if (urls.length === 0) {
+          console.error('Error: no URLs found in --urls input.')
+          return 1
+        }
+
+        const batch = await detectPlatformBatch(urls, {
+          minConfidence: args.minConfidence ?? undefined,
+          concurrency: args.concurrency ?? undefined,
+        })
+        const batchFormatter = BATCH_PLATFORM_FORMATTERS[args.format]
+        console.log(batchFormatter(batch))
+        return batch.successful > 0 ? 0 : 1
+      }
+
+      if (!args.url) {
+        console.error('Error: URL is required (or pass --urls <file|->|<url1,url2>). Run with --help for usage.')
+        return 1
+      }
+
+      const report = await detectPlatform(args.url, {
+        minConfidence: args.minConfidence ?? undefined,
+      })
+      const platformFormatter = PLATFORM_FORMATTERS[args.format]
+      console.log(platformFormatter(report))
+      return report.detected.length > 0 ? 0 : 1
+    }
+
+    if (!args.url) {
+      console.error('Error: URL is required. Run with --help for usage.')
+      return 1
+    }
+
     if (args.sitemap) {
       const options: SitemapAuditOptions = {
         factors: args.factors,

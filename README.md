@@ -76,6 +76,52 @@ npx @ainyc/aeo-audit https://example.com --include-geo
 npx @ainyc/aeo-audit https://example.com --include-agent-skills
 ```
 
+### Platform Detection Mode
+
+Detect what platform, CMS, framework, or static site generator a website is built on. Useful for competitor research, lead qualification, and triage before an audit.
+
+```bash
+# Identify the stack (WordPress, Webflow, Shopify, Next.js, Vercel, etc.)
+npx @ainyc/aeo-audit https://example.com --detect-platform
+
+# JSON for programmatic use
+npx @ainyc/aeo-audit https://example.com --detect-platform --format json
+
+# Only show high-confidence matches
+npx @ainyc/aeo-audit https://example.com --detect-platform --min-confidence high
+```
+
+The detector inspects HTML, response headers, `<meta name="generator">`, script and link sources, and platform-specific globals to fingerprint:
+
+- **CMS:** WordPress, Drupal, Joomla, Ghost, HubSpot, Craft CMS, Sanity, Contentful, Notion
+- **Site builders:** Wix, Squarespace, Webflow, Framer, Carrd, Bubble
+- **E-commerce:** Shopify, WooCommerce, BigCommerce, Magento, PrestaShop
+- **Frameworks:** Next.js, Nuxt, Gatsby, Remix, Astro, SvelteKit, Angular, Vue, React, Ember, Qwik
+- **Static site generators:** Hugo, Jekyll, Eleventy, Hexo, Docusaurus, MkDocs
+- **Hosting / CDN:** Vercel, Netlify, Cloudflare, GitHub Pages, Fastly, AWS CloudFront
+
+Each detected platform is reported with a confidence bucket (`high`, `medium`, `low`), a numeric score, an optional version, and the list of signals that matched. When no CMS, site builder, or e-commerce platform is found, the report flags the site as `custom-built` (framework and hosting fingerprints are still surfaced for context). Exit code is `0` when at least one platform is detected, `1` otherwise.
+
+#### Batch detection
+
+Pass `--urls` to fingerprint many sites in a single run. Pages are fetched with bounded concurrency (5 in flight by default; tune with `--concurrency`).
+
+```bash
+# From a file (one URL per line; # comments and blank lines are skipped)
+npx @ainyc/aeo-audit --detect-platform --urls urls.txt
+
+# Inline comma-separated list
+npx @ainyc/aeo-audit --detect-platform --urls https://a.com,https://b.com,https://c.com
+
+# From stdin
+cat urls.txt | npx @ainyc/aeo-audit --detect-platform --urls -
+
+# JSON for downstream processing
+npx @ainyc/aeo-audit --detect-platform --urls urls.txt --format json
+```
+
+Per-URL fetch errors don't abort the batch — each entry is reported with `status: 'success'` or `status: 'error'`. Exit code is `0` when at least one URL succeeded, `1` otherwise.
+
 ### Sitemap Mode
 
 Audit every page discovered from the site's sitemap with bounded concurrency (5 in flight):
@@ -107,6 +153,10 @@ When the sitemap has more URLs than `--limit`, the run audits the highest-priori
 | `--sitemap [url]` | Audit all pages from the sitemap (auto-discovers `/sitemap.xml` or uses an explicit URL) |
 | `--limit <n>` | Max pages to audit in sitemap mode (default 200, sorted by sitemap priority) |
 | `--top-issues` | In sitemap mode, skip per-page output and show only cross-cutting issues |
+| `--detect-platform` | Identify the platform/CMS/framework powering the site instead of running an audit |
+| `--urls <src>` | In `--detect-platform` mode, run on multiple URLs. `<src>` is a file path (one URL per line), a comma-separated list, or `-` for stdin |
+| `--concurrency <n>` | In `--detect-platform` batch mode, max in-flight fetches (default 5) |
+| `--min-confidence <lvl>` | In platform-detect mode, only report matches at or above this level: `low` (default), `medium`, `high` |
 | `-h`, `--help` | Show the help message |
 
 Exit code `0` for score >= 70, `1` for < 70 (CI-friendly). In sitemap mode the exit code is based on the aggregate score.

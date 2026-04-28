@@ -42,6 +42,7 @@ npx @ainyc/aeo-audit@1 "<url>" [flags] --format json
 - `schema`: validate JSON-LD and entity consistency
 - `llms`: create or improve `llms.txt` and `llms-full.txt`
 - `monitor`: compare changes over time or benchmark competitors
+- `detect-platform`: identify the CMS, site builder, framework, or hosting stack a site uses
 
 If no mode is provided, default to `audit`.
 
@@ -55,10 +56,14 @@ If no mode is provided, default to `audit`.
 - `schema https://example.com`
 - `llms https://example.com`
 - `monitor https://site-a.com --compare https://site-b.com`
+- `detect-platform https://example.com`
+- `detect-platform https://example.com --min-confidence high`
+- `detect-platform --urls competitors.txt`
+- `detect-platform --urls https://a.com,https://b.com`
 
 ## Mode Selection
 
-- If the first argument is one of `audit`, `fix`, `schema`, `llms`, or `monitor`, use that mode.
+- If the first argument is one of `audit`, `fix`, `schema`, `llms`, `monitor`, or `detect-platform`, use that mode.
 - If no explicit mode is given, infer the intent from the request and default to `audit`.
 
 ## Audit
@@ -100,6 +105,35 @@ Returns:
 - Cross-cutting issues (factors failing across multiple pages)
 - Aggregate score and grade
 - Prioritized fixes ranked by site-wide impact
+
+### Detect Platform Mode
+
+Use `--detect-platform` when the user wants to know what stack a site is built on (e.g., "is this WordPress?", "what framework does competitor X use?", "is this site custom-built?"). This is much faster than a full audit because it skips analyzer scoring.
+
+```bash
+npx @ainyc/aeo-audit@1 "<url>" --detect-platform --format json
+npx @ainyc/aeo-audit@1 "<url>" --detect-platform --min-confidence high --format json
+```
+
+Flags:
+- `--detect-platform` — switch to detection mode instead of auditing
+- `--min-confidence <lvl>` — filter to `low` (default), `medium`, or `high` confidence
+- `--urls <src>` — run on multiple URLs at once (file path, comma-separated list, or `-` for stdin)
+- `--concurrency <n>` — max in-flight fetches in batch mode (default 5)
+
+The report groups detections by category (CMS, site builder, e-commerce, framework, SSG, hosting), each with a confidence bucket, a 0–100 score, an optional version, and the signals that matched. When the report's `isCustom` flag is true, no CMS/site-builder/e-commerce platform was identified — the site is likely custom-built. Exit code is `0` when at least one platform is detected, `1` otherwise.
+
+#### Batch detection
+
+When the user wants to fingerprint many sites at once (competitor lists, customer cohorts), pass `--urls`:
+
+```bash
+npx @ainyc/aeo-audit@1 --detect-platform --urls urls.txt --format json
+npx @ainyc/aeo-audit@1 --detect-platform --urls https://a.com,https://b.com --format json
+cat urls.txt | npx @ainyc/aeo-audit@1 --detect-platform --urls - --format json
+```
+
+The batch report contains a `results` array; each entry has `status: 'success'` or `'error'`, plus the same shape as a single-URL report on success. Per-URL fetch errors do not abort the run. Exit code is `0` when at least one URL succeeded, `1` otherwise.
 
 ## Fix
 

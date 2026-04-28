@@ -198,3 +198,57 @@ export interface SitemapAuditOptions extends RunAeoAuditOptions {
   topIssuesOnly?: boolean
   onPlan?: (plan: SitemapAuditPlan) => void
 }
+
+/* ── Platform detection types ── */
+
+export type PlatformCategory = 'cms' | 'site-builder' | 'ecommerce' | 'framework' | 'ssg' | 'hosting'
+
+export type PlatformConfidence = 'high' | 'medium' | 'low'
+
+export interface DetectedPlatform {
+  id: string
+  name: string
+  category: PlatformCategory
+  confidence: PlatformConfidence
+  confidenceScore: number
+  version?: string
+  evidence: string[]
+}
+
+export interface PlatformDetectionReport {
+  url: string
+  finalUrl: string
+  detectedAt: string
+  isCustom: boolean
+  detected: DetectedPlatform[]
+  rawSignals: {
+    generator: string | null
+    xPoweredBy: string | null
+    server: string | null
+  }
+  fetchTimeMs: number
+}
+
+export interface BatchDetectionEntry {
+  url: string
+  status: 'success' | 'error'
+  error?: string
+  finalUrl?: string
+  isCustom?: boolean
+  detected?: DetectedPlatform[]
+  rawSignals?: {
+    generator: string | null
+    xPoweredBy: string | null
+    server: string | null
+  }
+  fetchTimeMs?: number
+}
+
+export interface BatchPlatformDetectionReport {
+  detectedAt: string
+  totalUrls: number
+  successful: number
+  failed: number
+  totalFetchTimeMs: number
+  results: BatchDetectionEntry[]
+}
