@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-@ainyc/aeo-audit — an open-source AEO (Answer Engine Optimization) audit engine and single umbrella Claude Code / ClawHub skill. Scores websites across 13 ranking factors that determine AI citation.
+@ainyc/aeo-audit — an open-source AEO (Answer Engine Optimization) audit engine and single umbrella Claude Code / ClawHub skill. Scores websites across 14 ranking factors that determine AI citation.
 
 Website: https://ainyc.ai
 
@@ -37,7 +37,7 @@ src/
   errors.ts          # AeoAuditError class
   cli.ts             # CLI argument parsing
   formatters/        # json, markdown, text output formatters
-  analyzers/         # 14 analyzer modules (13 core + 1 optional)
+  analyzers/         # Per-factor analyzer modules (15 core + 2 optional) plus shared helpers.ts
   types.ts           # Shared audit/report TypeScript types
 dist/                # Compiled publishable ESM output
 bin/

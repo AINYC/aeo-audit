@@ -14,6 +14,7 @@ import { analyzeGeographicSignals } from './analyzers/geographic-signals.js'
 import { analyzeEeatSignals } from './analyzers/eeat-signals.js'
 import { analyzeAiCrawlerAccess } from './analyzers/ai-crawler-access.js'
 import { analyzeSchemaCompleteness } from './analyzers/schema-completeness.js'
+import { analyzeSchemaValidity } from './analyzers/schema-validity.js'
 import { analyzeContentExtractability } from './analyzers/content-extractability.js'
 import { analyzeTechnicalSeo } from './analyzers/technical-seo.js'
 import { analyzeAgentSkillExposure } from './analyzers/agent-skill-exposure.js'
@@ -47,6 +48,7 @@ const ANALYZER_BY_ID: Record<string, Analyzer> = {
   'eeat-signals': analyzeEeatSignals,
   'ai-crawler-access': analyzeAiCrawlerAccess,
   'schema-completeness': analyzeSchemaCompleteness,
+  'schema-validity': analyzeSchemaValidity,
   'content-extractability': analyzeContentExtractability,
   'technical-seo': analyzeTechnicalSeo,
   'agent-skill-exposure': analyzeAgentSkillExposure,

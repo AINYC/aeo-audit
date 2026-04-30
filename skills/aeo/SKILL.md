@@ -166,20 +166,22 @@ Use when the request is specifically about JSON-LD or schema quality.
 
 1. Run:
    ```bash
-   npx @ainyc/aeo-audit@1 "<url>" [flags] --format json --factors structured-data,schema-completeness,entity-consistency
+   npx @ainyc/aeo-audit@1 "<url>" [flags] --format json --factors structured-data,schema-completeness,schema-validity,entity-consistency
    ```
 2. Report:
    - Schema types found
    - Property completeness by type
    - Missing recommended properties
+   - **Validity errors** (duplicate singleton `@type`s, JSON parse errors, empty `<script>` blocks) — surface these prominently regardless of overall score; Google drops invalid blocks silently from rich results
    - Entity consistency issues
 3. Provide corrected JSON-LD examples when useful.
 
 Checklist:
 - `LocalBusiness`: name, address, telephone, openingHours, priceRange, image, url, geo, areaServed, sameAs
-- `FAQPage`: mainEntity with at least 3 Q&A pairs
-- `HowTo`: name and at least 3 steps
+- `FAQPage`: mainEntity with at least 3 Q&A pairs (and only **one** `FAQPage` block per page — duplicates invalidate rich results)
+- `HowTo`: name and at least 3 steps (singleton — only one per page)
 - `Organization`: name, logo, contactPoint, sameAs, foundingDate, url, description
+- Singletons that must not repeat per page: `FAQPage`, `HowTo`, `Article`, `BlogPosting`, `NewsArticle`, `BreadcrumbList`, `Product`, `Recipe`
 
 ## llms.txt
 

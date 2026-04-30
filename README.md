@@ -1,6 +1,6 @@
 # @ainyc/aeo-audit
 
-The most comprehensive open-source Answer Engine Optimization (AEO) audit tool. Scores any website across 13 ranking factors that determine whether AI answer engines — ChatGPT, Perplexity, Gemini, Claude — will cite your content.
+The most comprehensive open-source Answer Engine Optimization (AEO) audit tool. Scores any website across 14 ranking factors that determine whether AI answer engines — ChatGPT, Perplexity, Gemini, Claude — will cite your content.
 
 Website: [ainyc.ai](https://ainyc.ai)
 
@@ -34,7 +34,7 @@ AI answer engines are replacing traditional search for millions of queries. Gett
 - **E-E-A-T signals** (author credentials, trust pages) determine citation trustworthiness
 - **Content extractability** — clean, well-structured content gets cited; paywalled content doesn't
 
-## 13 Scoring Factors
+## 14 Scoring Factors
 
 | Factor | Weight | What It Checks |
 |--------|--------|---------------|
@@ -50,6 +50,7 @@ AI answer engines are replacing traditional search for millions of queries. Gett
 | Content Extractability | 6% | Content-to-boilerplate ratio, citation-ready blocks, paywall detection |
 | Definition Blocks | 6% | "What is", "How to" headings, step lists, HowTo schema, dl elements |
 | Named Entities | 6% | Brand mentions, knowsAbout/founder signals, proper noun density |
+| Schema Validity | 5% | Duplicate singleton @types, JSON parse errors, empty JSON-LD blocks |
 | AI Crawler Access | 4% | Per-bot robots.txt rules for GPTBot, ClaudeBot, PerplexityBot, etc. |
 
 **Optional:** Geographic Signals (7%) — LocalBusiness geo data, address, areaServed. Enable with `--include-geo`.
@@ -68,6 +69,10 @@ npx @ainyc/aeo-audit https://example.com --format markdown
 
 # Run specific factors only
 npx @ainyc/aeo-audit https://example.com --factors structured-data,faq-content
+
+# Validate JSON-LD blocks for parse errors and duplicate singleton @types
+# (catches issues like duplicate FAQPage that Google flags as invalid)
+npx @ainyc/aeo-audit https://example.com --factors schema-validity
 
 # Include geographic signals
 npx @ainyc/aeo-audit https://example.com --include-geo

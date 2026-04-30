@@ -58,6 +58,91 @@ export function parseJsonLdScripts($: CheerioAPI): StructuredDataEntry[] {
   return items
 }
 
+export interface JsonLdBlockInfo {
+  index: number
+  isEmpty: boolean
+  parseError?: string
+  parsed?: unknown
+  topLevelTypes: string[]
+}
+
+export interface JsonLdExtraction {
+  totalBlocks: number
+  blocks: JsonLdBlockInfo[]
+}
+
+export function extractJsonLdBlocks($: CheerioAPI): JsonLdExtraction {
+  const scripts = $('script[type="application/ld+json"]')
+  const blocks: JsonLdBlockInfo[] = []
+
+  scripts.each((index, element) => {
+    const raw = $(element).html() ?? ''
+
+    if (!raw.trim()) {
+      blocks.push({ index, isEmpty: true, topLevelTypes: [] })
+      return
+    }
+
+    try {
+      const parsed: unknown = JSON.parse(raw)
+      blocks.push({
+        index,
+        isEmpty: false,
+        parsed,
+        topLevelTypes: collectTopLevelTypes(parsed),
+      })
+    } catch (error) {
+      blocks.push({
+        index,
+        isEmpty: false,
+        parseError: error instanceof Error ? error.message : String(error),
+        topLevelTypes: [],
+      })
+    }
+  })
+
+  return { totalBlocks: blocks.length, blocks }
+}
+
+function collectTopLevelTypes(value: unknown): string[] {
+  const types: string[] = []
+  walkRoots(value, (record) => {
+    const rawType = record['@type']
+    if (typeof rawType === 'string' && rawType.trim()) {
+      types.push(rawType.trim())
+    } else if (Array.isArray(rawType)) {
+      for (const candidate of rawType) {
+        if (typeof candidate === 'string' && candidate.trim()) {
+          types.push(candidate.trim())
+        }
+      }
+    }
+  })
+  return types
+}
+
+function walkRoots(value: unknown, visit: (record: Record<string, unknown>) => void): void {
+  if (!value) return
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      walkRoots(item, visit)
+    }
+    return
+  }
+
+  if (typeof value !== 'object') return
+
+  const record = value as Record<string, unknown>
+  const graph = record['@graph']
+  if (graph) {
+    walkRoots(graph, visit)
+    return
+  }
+
+  visit(record)
+}
+
 function flattenStructuredData(candidate: unknown, accumulator: StructuredDataEntry[]): void {
   if (!candidate) {
     return

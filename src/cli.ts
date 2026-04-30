@@ -209,6 +209,7 @@ Examples:
   aeo-audit https://example.com
   aeo-audit https://example.com --format json
   aeo-audit https://example.com --factors structured-data,faq-content
+  aeo-audit https://example.com --factors schema-validity
   aeo-audit https://example.com --include-geo
   aeo-audit https://example.com --include-agent-skills
   aeo-audit https://example.com --sitemap
