@@ -9,6 +9,7 @@ export const FACTOR_DEFINITIONS: FactorDefinition[] = [
   { id: 'faq-content', name: 'FAQ Content', weight: 8 },
   { id: 'citations', name: 'Citations & Authority Signals', weight: 8 },
   { id: 'schema-completeness', name: 'Schema Completeness', weight: 8 },
+  { id: 'schema-validity', name: 'Schema Validity', weight: 5 },
   { id: 'entity-consistency', name: 'Entity Consistency', weight: 7 },
   { id: 'content-freshness', name: 'Content Freshness', weight: 7 },
   { id: 'content-extractability', name: 'Content Extractability', weight: 6 },
