@@ -164,17 +164,29 @@ Rules:
 
 Use when the request is specifically about JSON-LD or schema quality.
 
-1. Run:
-   ```bash
-   npx @ainyc/aeo-audit@1 "<url>" [flags] --format json --factors structured-data,schema-completeness,schema-validity,entity-consistency
-   ```
-2. Report:
-   - Schema types found
-   - Property completeness by type
-   - Missing recommended properties
-   - **Validity errors** (duplicate singleton `@type`s, JSON parse errors, empty `<script>` blocks) — surface these prominently regardless of overall score; Google drops invalid blocks silently from rich results
-   - Entity consistency issues
-3. Provide corrected JSON-LD examples when useful.
+Validity issues like duplicate singleton `@type`s and JSON parse errors are **per page**, so a homepage-only audit misses every subpage. Default to sitemap mode for site-wide schema requests ("audit my schema", "are my FAQ blocks valid?"); use single-URL mode only when the user names one specific page.
+
+Site-wide (default):
+
+```bash
+npx @ainyc/aeo-audit@1 "<url>" --sitemap --top-issues --format json --factors structured-data,schema-completeness,schema-validity,entity-consistency
+```
+
+Single page:
+
+```bash
+npx @ainyc/aeo-audit@1 "<url>" --format json --factors structured-data,schema-completeness,schema-validity,entity-consistency
+```
+
+Report:
+- Schema types found
+- Property completeness by type
+- Missing recommended properties
+- **Validity errors** (duplicate singleton `@type`s, JSON parse errors, empty `<script>` blocks) — surface these prominently regardless of overall score; Google drops invalid blocks silently from rich results
+- Entity consistency issues
+- In sitemap mode: list every affected URL for each validity error so the user can locate per-page duplicates
+
+Provide corrected JSON-LD examples when useful.
 
 Checklist:
 - `LocalBusiness`: name, address, telephone, openingHours, priceRange, image, url, geo, areaServed, sameAs

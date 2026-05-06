@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.1 (2026-05-06)
+
+### Documentation
+- README's Programmatic Usage section now documents `runSitemapAudit` alongside `runAeoAudit`. Library users who called `runAeoAudit('https://example.com')` on the homepage missed per-page issues — duplicate singleton `@type`s, JSON parse errors, missing schema on individual templates — because those problems live on subpages. Calling out the scope distinction up front, with a concrete `crossCuttingIssues` / `affectedUrls` example, makes site-wide auditing the obvious choice when one is appropriate.
+- Schema mode in `skills/aeo/SKILL.md` now defaults to sitemap mode (`--sitemap --top-issues`) for site-wide schema requests, mirroring the same scope guidance for skill users.
+
 ## 1.7.0 (2026-04-30)
 
 ### Added
