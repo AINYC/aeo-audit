@@ -1,6 +1,6 @@
 # @ainyc/aeo-audit
 
-The most comprehensive open-source Answer Engine Optimization (AEO) audit tool. Scores any website across 14 ranking factors that determine whether AI answer engines — ChatGPT, Perplexity, Gemini, Claude — will cite your content.
+The most comprehensive open-source Answer Engine Optimization (AEO) audit tool. Scores any website across 16 ranking factors that determine whether AI answer engines — ChatGPT, Perplexity, Gemini, Claude — will cite your content.
 
 Website: [ainyc.ai](https://ainyc.ai)
 
@@ -34,7 +34,7 @@ AI answer engines are replacing traditional search for millions of queries. Gett
 - **E-E-A-T signals** (author credentials, trust pages) determine citation trustworthiness
 - **Content extractability** — clean, well-structured content gets cited; paywalled content doesn't
 
-## 14 Scoring Factors
+## 16 Scoring Factors
 
 | Factor | Weight | What It Checks |
 |--------|--------|---------------|
@@ -50,10 +50,16 @@ AI answer engines are replacing traditional search for millions of queries. Gett
 | Content Extractability | 6% | Content-to-boilerplate ratio, citation-ready blocks, paywall detection |
 | Definition Blocks | 6% | "What is", "How to" headings, step lists, HowTo schema, dl elements |
 | Named Entities | 6% | Brand mentions, knowsAbout/founder signals, proper noun density |
+| Snippet Eligibility | 6% | `noindex`/`nosnippet`/`max-snippet` directives in meta robots and `X-Robots-Tag` — Google ties AI feature eligibility to these ([source][google-aeo]) |
+| Technical SEO | 5% | H1 presence, image alt text, meta description length, canonical tag |
 | Schema Validity | 5% | Duplicate singleton @types, JSON parse errors, empty JSON-LD blocks |
 | AI Crawler Access | 4% | Per-bot robots.txt rules for GPTBot, ClaudeBot, PerplexityBot, etc. |
 
-**Optional:** Geographic Signals (7%) — LocalBusiness geo data, address, areaServed. Enable with `--include-geo`.
+**Optional:** Geographic Signals (7%) — LocalBusiness geo data, address, areaServed. Enable with `--include-geo`. Agent Skill Exposure (6%) — Schema.org Action, MCP, form affordances. Enable with `--include-agent-skills`.
+
+[google-aeo]: https://developers.google.com/search/docs/fundamentals/ai-optimization-guide "Google: AI features and your website"
+
+> **Note on Google's guidance.** Google's [AI features and your website][google-aeo] guide says `llms.txt` and heavy structured data aren't required for AI Overviews or AI Mode. We still score them — Google is one engine; ChatGPT, Perplexity, and Claude do rely on them. Snippet eligibility is the one hard gate Google enforces: a page must be indexable and snippet-eligible to appear in AI features.
 
 ## CLI Usage
 
