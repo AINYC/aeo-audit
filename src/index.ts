@@ -17,6 +17,7 @@ import { analyzeSchemaCompleteness } from './analyzers/schema-completeness.js'
 import { analyzeSchemaValidity } from './analyzers/schema-validity.js'
 import { analyzeContentExtractability } from './analyzers/content-extractability.js'
 import { analyzeTechnicalSeo } from './analyzers/technical-seo.js'
+import { analyzeSnippetEligibility } from './analyzers/snippet-eligibility.js'
 import { analyzeAgentSkillExposure } from './analyzers/agent-skill-exposure.js'
 import { getVisibleText, parseJsonLdScripts, countWords } from './analyzers/helpers.js'
 import { FACTOR_DEFINITIONS, OPTIONAL_FACTOR_DEFINITIONS, scoreFactors } from './scoring.js'
@@ -51,6 +52,7 @@ const ANALYZER_BY_ID: Record<string, Analyzer> = {
   'schema-validity': analyzeSchemaValidity,
   'content-extractability': analyzeContentExtractability,
   'technical-seo': analyzeTechnicalSeo,
+  'snippet-eligibility': analyzeSnippetEligibility,
   'agent-skill-exposure': analyzeAgentSkillExposure,
 }
 
