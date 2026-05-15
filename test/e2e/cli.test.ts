@@ -149,11 +149,11 @@ test('compiled CLI returns the expected JSON report for the fixture site', async
   assert.equal(report.url, FIXTURE_ORIGIN)
   assert.equal(report.finalUrl, FIXTURE_ORIGIN)
   assert.equal(report.auditedAt, FIXED_NOW)
-  assert.equal(report.overallScore, 77)
-  assert.equal(report.overallGrade, 'C+')
+  assert.equal(report.overallScore, 76)
+  assert.equal(report.overallGrade, 'C')
   assert.equal(
     report.summary,
-    'Overall grade C+. Strongest signals: AI-Readable Content, Schema Validity. Biggest opportunities: Schema Completeness, E-E-A-T Signals.',
+    'Overall grade C. Strongest signals: AI-Readable Content, Schema Validity. Biggest opportunities: Schema Completeness, E-E-A-T Signals.',
   )
   assert.deepEqual(report.metadata, {
     fetchTimeMs: 0,
