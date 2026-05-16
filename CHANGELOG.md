@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.8.1 (2026-05-16)
+
+### Changed
+- Reduced `ai-readable-content` factor weight from 10% → 5%. The llms.txt / llms-full.txt / robots.txt / sitemap.xml availability signal carries roughly half the influence it did before, since file presence alone is a weak predictor of citation quality compared to schema and content depth.
+
+## 1.8.0 (2026-05-15)
+
+### Added
+- New `snippet-eligibility` analyzer (weight 6) — 16th scoring factor. Parses `meta robots`, `meta googlebot`, and `X-Robots-Tag` directives per Google's "AI features and your website" guide. `noindex`, `nosnippet`, and `max-snippet:0` hard-fail the factor because a page must be indexable and snippet-eligible to appear in AI Overviews or AI Mode.
+
+### Documentation
+- README note explaining why we keep scoring `llms.txt` and structured data even though Google's AEO guide says they aren't required for Google AI surfaces — other answer engines (ChatGPT, Perplexity, Claude) still rely on them.
+
 ## 1.7.1 (2026-05-06)
 
 ### Documentation
