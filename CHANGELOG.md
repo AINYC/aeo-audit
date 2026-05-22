@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.0 (2026-05-21)
+
+### Added
+- New optional `lighthouse` factor (weight 8) that wraps Google PageSpeed Insights. Enabled with the `--lighthouse` CLI flag or `includeLighthouse: true` in `runAeoAudit`. Aggregates Lighthouse Performance, Accessibility, and Best Practices (mobile strategy) into a single 0–100 score, and surfaces the five lowest-scoring Lighthouse audits as recommendations.
+- Reads an optional `PAGESPEED_API_KEY` environment variable to lift anonymous PSI rate limits.
+
+### Behavior
+- `--lighthouse` is rejected when combined with `--sitemap` or `--detect-platform`. Each Lighthouse call takes 15–30s; running it across a 200-page sitemap would push the audit past an hour. Run it on individual pages instead.
+- On PSI failure (HTTP error, timeout, network unreachable) the factor scores 0 with a `timeout` or `unreachable` finding so the rest of the audit still produces a usable report.
+
 ## 1.8.1 (2026-05-16)
 
 ### Changed

@@ -55,7 +55,7 @@ AI answer engines are replacing traditional search for millions of queries. Gett
 | Schema Validity | 5% | Duplicate singleton @types, JSON parse errors, empty JSON-LD blocks |
 | AI Crawler Access | 4% | Per-bot robots.txt rules for GPTBot, ClaudeBot, PerplexityBot, etc. |
 
-**Optional:** Geographic Signals (7%) — LocalBusiness geo data, address, areaServed. Enable with `--include-geo`. Agent Skill Exposure (6%) — Schema.org Action, MCP, form affordances. Enable with `--include-agent-skills`.
+**Optional:** Geographic Signals (7%) — LocalBusiness geo data, address, areaServed. Enable with `--include-geo`. Agent Skill Exposure (6%) — Schema.org Action, MCP, form affordances. Enable with `--include-agent-skills`. Lighthouse (8%) — Performance, Accessibility, and Best Practices scores via Google PageSpeed Insights (mobile strategy). Enable with `--lighthouse`. Adds ~15-30s per audit; set `PAGESPEED_API_KEY` to lift anonymous rate limits.
 
 [google-aeo]: https://developers.google.com/search/docs/fundamentals/ai-optimization-guide "Google: AI features and your website"
 
@@ -85,6 +85,13 @@ npx @ainyc/aeo-audit https://example.com --include-geo
 
 # Include optional agent skill exposure factor
 npx @ainyc/aeo-audit https://example.com --include-agent-skills
+
+# Include optional Lighthouse factor (Performance + A11y + Best Practices, mobile)
+# Calls Google PageSpeed Insights — adds ~15-30s. Single-URL only (not sitemap mode).
+npx @ainyc/aeo-audit https://example.com --lighthouse
+
+# Provide a PageSpeed Insights API key to lift anonymous rate limits
+PAGESPEED_API_KEY=xxx npx @ainyc/aeo-audit https://example.com --lighthouse --format json
 ```
 
 ### Platform Detection Mode
@@ -161,6 +168,7 @@ When the sitemap has more URLs than `--limit`, the run audits the highest-priori
 | `--factors <list>` | Comma-separated factor IDs to run (runs all if omitted) |
 | `--include-geo` | Include the optional geographic signals factor |
 | `--include-agent-skills` | Include the optional agent skill exposure factor |
+| `--lighthouse` | Include the optional Lighthouse factor (Performance + Accessibility + Best Practices, mobile strategy) via Google PageSpeed Insights. Single-URL only; cannot combine with `--sitemap` or `--detect-platform`. Adds ~15-30s. Set `PAGESPEED_API_KEY` env var to lift anonymous rate limits. |
 | `--sitemap [url]` | Audit all pages from the sitemap (auto-discovers `/sitemap.xml` or uses an explicit URL) |
 | `--limit <n>` | Max pages to audit in sitemap mode (default 200, sorted by sitemap priority) |
 | `--top-issues` | In sitemap mode, skip per-page output and show only cross-cutting issues |
@@ -182,8 +190,10 @@ The library exposes two audit entry points. **Use `runSitemapAudit` for site-wid
 import { runAeoAudit } from '@ainyc/aeo-audit'
 
 const report = await runAeoAudit('https://example.com/specific-page', {
-  includeGeo: false,        // Include geographic signals (default: false)
-  factors: undefined,       // Run all factors (or pass array of factor IDs)
+  includeGeo: false,         // Include geographic signals (default: false)
+  includeAgentSkills: false, // Include agent skill exposure (default: false)
+  includeLighthouse: false,  // Include Lighthouse via PageSpeed Insights (default: false; adds ~15-30s)
+  factors: undefined,        // Run all factors (or pass array of factor IDs)
 })
 
 console.log(report.overallGrade) // 'A+'

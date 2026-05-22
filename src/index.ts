@@ -19,6 +19,7 @@ import { analyzeContentExtractability } from './analyzers/content-extractability
 import { analyzeTechnicalSeo } from './analyzers/technical-seo.js'
 import { analyzeSnippetEligibility } from './analyzers/snippet-eligibility.js'
 import { analyzeAgentSkillExposure } from './analyzers/agent-skill-exposure.js'
+import { analyzeLighthouse } from './analyzers/lighthouse.js'
 import { getVisibleText, parseJsonLdScripts, countWords } from './analyzers/helpers.js'
 import { FACTOR_DEFINITIONS, OPTIONAL_FACTOR_DEFINITIONS, scoreFactors } from './scoring.js'
 import type { Analyzer, AuditContext, AuditReport, RunAeoAuditOptions, ScoredFactor } from './types.js'
@@ -54,6 +55,7 @@ const ANALYZER_BY_ID: Record<string, Analyzer> = {
   'technical-seo': analyzeTechnicalSeo,
   'snippet-eligibility': analyzeSnippetEligibility,
   'agent-skill-exposure': analyzeAgentSkillExposure,
+  lighthouse: analyzeLighthouse,
 }
 
 const ALL_FACTOR_IDS = new Set([
@@ -106,6 +108,7 @@ export async function runAeoAudit(rawUrl: string, options: RunAeoAuditOptions = 
   const enabledOptional = new Set<string>()
   if (options.includeGeo) enabledOptional.add('geographic-signals')
   if (options.includeAgentSkills) enabledOptional.add('agent-skill-exposure')
+  if (options.includeLighthouse) enabledOptional.add('lighthouse')
 
   let activeDefs = [
     ...FACTOR_DEFINITIONS,

@@ -75,6 +75,7 @@ export interface RunAeoAuditOptions {
   factors?: string[] | null
   includeGeo?: boolean
   includeAgentSkills?: boolean
+  includeLighthouse?: boolean
 }
 
 export interface RawFactorResult extends AnalysisResult {

@@ -61,6 +61,7 @@ interface ParsedArgs {
   factors: string[] | null
   includeGeo: boolean
   includeAgentSkills: boolean
+  lighthouse: boolean
   help: boolean
   sitemap: boolean
   sitemapUrl: string | null
@@ -84,6 +85,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     factors: null,
     includeGeo: false,
     includeAgentSkills: false,
+    lighthouse: false,
     help: false,
     sitemap: false,
     sitemapUrl: null,
@@ -106,6 +108,8 @@ function parseArgs(argv: string[]): ParsedArgs {
       result.includeGeo = true
     } else if (args[i] === '--include-agent-skills') {
       result.includeAgentSkills = true
+    } else if (args[i] === '--lighthouse') {
+      result.lighthouse = true
     } else if (args[i] === '--sitemap') {
       result.sitemap = true
       // Check if the next arg is an explicit sitemap URL (not another flag)
@@ -190,6 +194,10 @@ Options:
   --factors <list>        Comma-separated factor IDs to run (runs all if omitted)
   --include-geo           Include optional geographic signals factor
   --include-agent-skills  Include optional agent skill exposure factor (Schema.org Action, MCP, form affordances)
+  --lighthouse            Include optional Lighthouse factor (Performance + Accessibility + Best Practices,
+                          mobile strategy) via Google PageSpeed Insights. Adds ~15-30s per audit. Set
+                          PAGESPEED_API_KEY to lift anonymous rate limits. Single-URL only (cannot combine
+                          with --sitemap or --detect-platform).
   --sitemap [url]         Audit all pages from sitemap (auto-discovers /sitemap.xml or use explicit URL).
                           Pages are fetched with bounded concurrency (5 in flight).
   --limit <n>             Max pages to audit in sitemap mode (default 200, sorted by sitemap priority).
@@ -212,6 +220,8 @@ Examples:
   aeo-audit https://example.com --factors schema-validity
   aeo-audit https://example.com --include-geo
   aeo-audit https://example.com --include-agent-skills
+  aeo-audit https://example.com --lighthouse
+  PAGESPEED_API_KEY=xxx aeo-audit https://example.com --lighthouse --format json
   aeo-audit https://example.com --sitemap
   aeo-audit https://example.com --sitemap https://example.com/sitemap.xml
   aeo-audit https://example.com --sitemap --limit 10
@@ -244,6 +254,16 @@ export async function main(argv: string[] = process.argv): Promise<number> {
 
   if (args.urls && !args.detectPlatform) {
     console.error('Error: --urls is only supported with --detect-platform.')
+    return 1
+  }
+
+  if (args.lighthouse && args.sitemap) {
+    console.error('Error: --lighthouse cannot be combined with --sitemap. Each Lighthouse audit takes 15-30s and would blow up sitemap runtime. Run --lighthouse on individual URLs instead.')
+    return 1
+  }
+
+  if (args.lighthouse && args.detectPlatform) {
+    console.error('Error: --lighthouse cannot be combined with --detect-platform.')
     return 1
   }
 
@@ -316,6 +336,7 @@ export async function main(argv: string[] = process.argv): Promise<number> {
       factors: args.factors,
       includeGeo: args.includeGeo,
       includeAgentSkills: args.includeAgentSkills,
+      includeLighthouse: args.lighthouse,
     })
 
     console.log(formatter(report))
