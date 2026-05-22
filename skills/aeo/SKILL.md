@@ -52,6 +52,7 @@ If no mode is provided, default to `audit`.
 - `audit https://example.com --sitemap`
 - `audit https://example.com --sitemap --limit 10`
 - `audit https://example.com --sitemap --top-issues`
+- `audit https://example.com --lighthouse`
 - `fix https://example.com`
 - `schema https://example.com`
 - `llms https://example.com`
@@ -105,6 +106,20 @@ Returns:
 - Cross-cutting issues (factors failing across multiple pages)
 - Aggregate score and grade
 - Prioritized fixes ranked by site-wide impact
+
+### Lighthouse Mode
+
+Use `--lighthouse` when the user wants page speed, accessibility, or best-practices scoring alongside the AEO factors. It calls Google PageSpeed Insights (mobile strategy) and aggregates Performance + Accessibility + Best Practices into a single optional factor (weight 8).
+
+```bash
+npx @ainyc/aeo-audit@1 "<url>" --lighthouse --format json
+PAGESPEED_API_KEY=xxx npx @ainyc/aeo-audit@1 "<url>" --lighthouse --format json
+```
+
+Constraints:
+- Single-URL only — cannot combine with `--sitemap` or `--detect-platform`. Each Lighthouse audit takes 15-30s, which would blow up sitemap runtime.
+- Optional `PAGESPEED_API_KEY` env var lifts anonymous PSI rate limits (25k/day unauthenticated).
+- On PSI failure (unreachable target, timeout, HTTP error) the factor scores 0 and surfaces a `timeout` or `unreachable` finding rather than throwing — the rest of the audit still runs.
 
 ### Detect Platform Mode
 
