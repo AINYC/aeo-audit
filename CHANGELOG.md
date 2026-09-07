@@ -1,5 +1,11 @@
 # Changelog
 
+## 7.2.0 (2026-09-07)
+
+### Fixed
+
+- **The derived duration budget was too tight to be a ceiling.** `SCALED_PAGES_PER_SECOND` was 2.5, the arithmetic rate at the default concurrency of 5 against a two-second origin. Measured on a ~8,700-page production site: 7,351 pages in 58 minutes, or 2.11 pages per second including parse, redirects and retries. The derived clock therefore expired at 84% of a crawl that was making steady progress, and the run reported `max-duration` even though the page budget had never bound, which is the same silent-truncation defect the budget scaling exists to remove. The constant is now 1 page per second, so an origin can be twice as slow as that measurement and a crawl still ends on its page budget rather than its clock. A stated `maxDurationMs` is still honoured exactly, `requestDelayMs` still adds on top, and the flat default is still the floor for small crawls.
+
 ## 7.1.0 (2026-08-28)
 
 ### Fixed

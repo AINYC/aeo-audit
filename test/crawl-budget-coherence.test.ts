@@ -214,6 +214,27 @@ describe('crawl budget coherence', () => {
     expect(resolveSiteCrawlLimits({maxPages: Number.MAX_VALUE}).maxEdges).toBeLessThanOrEqual(Number.MAX_SAFE_INTEGER)
   })
 
+  test('the duration budget survives an origin slower than the assumed rate', () => {
+    // The derived clock is a CEILING, so it must not be the thing that stops a
+    // crawl making steady progress. Measured on a ~8,700-page production site:
+    // 7,351 pages in 58 minutes = 2.11 pages/sec including parse, redirects and
+    // retries. The old 2.5 pages/sec assumption expired at 84% of that crawl and
+    // reported max-duration while the page budget had never bound.
+    const OBSERVED_PAGES_PER_SECOND = 2.11
+    for (const maxPages of [500, 5_000, 8_700, 20_000]) {
+      const budgetMs = resolveSiteCrawlLimits({maxPages}).maxDurationMs
+      const needMs = (maxPages / OBSERVED_PAGES_PER_SECOND) * 1_000
+      // Two-fold headroom: an origin can be twice as slow as the measurement and
+      // the crawl still ends on its page budget rather than its clock.
+      expect(budgetMs).toBeGreaterThanOrEqual(needMs * 2)
+    }
+    // Pacing still adds on top, and the flat default remains the floor.
+    expect(resolveSiteCrawlLimits({maxPages: 5_000, requestDelayMs: 1_000}).maxDurationMs)
+      .toBeGreaterThan(resolveSiteCrawlLimits({maxPages: 5_000}).maxDurationMs)
+    expect(resolveSiteCrawlLimits({maxPages: 1}).maxDurationMs)
+      .toBe(DEFAULT_SITE_CRAWL_LIMITS.maxDurationMs)
+  })
+
   test('a stated budget is never raised or lowered by the derivation', () => {
     const limits = resolveSiteCrawlLimits({maxPages: 5_000, maxBytes: 1_000, maxDurationMs: 25, maxFetches: 7})
     expect(limits.maxBytes).toBe(1_000)
