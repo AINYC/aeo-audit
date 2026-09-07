@@ -158,8 +158,23 @@ const SCALED_BYTES_PER_PAGE = 1_500_000
  * the same defect this scaling exists to remove, moved from bytes to fetches.
  */
 const SCALED_REQUESTS_PER_PAGE = 2
-/** Pages per second at the default concurrency, halved for slow origins. */
-const SCALED_PAGES_PER_SECOND = 2.5
+/**
+ * Pages per second assumed when scaling an unset duration budget.
+ *
+ * Deliberately pessimistic, for the same reason SCALED_BYTES_PER_PAGE is
+ * generous: the budget is a ceiling, not an allocation, so over-provisioning
+ * costs nothing while under-provisioning silently truncates a healthy crawl.
+ *
+ * 2.5 was the arithmetic rate at the default concurrency of 5 against a
+ * two-second origin, and it was too optimistic to be a ceiling. Measured on a
+ * ~8,700-page production site: 7,351 pages in 58 minutes, or 2.11 pages per
+ * second including parse, redirects and retries. The derived clock therefore
+ * expired at 84% of a crawl that was making steady progress, and the run was
+ * reported `max-duration` even though the page budget had never bound. At 1
+ * page per second an origin can be twice as slow as that measurement and a
+ * crawl still finishes on its page budget rather than its clock.
+ */
+const SCALED_PAGES_PER_SECOND = 1
 
 /**
  * Internal-link edges to allow per page when scaling an unset edge budget.
